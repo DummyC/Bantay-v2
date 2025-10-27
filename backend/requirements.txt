@@ -1,0 +1,10 @@
+fastapi>=0.95.0
+uvicorn[standard]>=0.23.0
+SQLAlchemy>=1.4
+passlib[bcrypt]>=1.7
+python-jose[cryptography]>=3.3
+python-dotenv>=1.0
+pydantic>=1.10
+pydantic-settings>=0.1
+requests>=2.31
+alembic>=1.11
