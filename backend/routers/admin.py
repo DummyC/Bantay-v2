@@ -26,6 +26,12 @@ class RegisterDeviceIn(BaseModel):
     medical_record: Optional[str] = None
 
 
+class CoastGuardCreateIn(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+
 @router.post("/register")
 def register(data: RegisterDeviceIn, db: Session = Depends(get_db), _=Depends(require_admin)):
     # require Traccar API credentials unless testing
@@ -105,6 +111,34 @@ def register(data: RegisterDeviceIn, db: Session = Depends(get_db), _=Depends(re
     med = ff.medical_record if ff else None
 
     return {"ok": True, "device": {"id": device.id, "traccar_device_id": device.traccar_device_id, "unique_id": device.unique_id, "user_id": device.user_id}, "fisherfolk": {"id": fisher.id, "email": fisher.email, "medical_record": med}}
+
+
+
+@router.post("/register_fisher")
+def register_fisher(data: RegisterDeviceIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Alias for /register kept for clarity: register a fisherfolk and their device."""
+    return register(data, db)
+
+
+@router.post("/register_coastguard")
+def register_coastguard(data: CoastGuardCreateIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+    """Create a coast guard user. This endpoint requires administrator privileges."""
+    existing = db.query(User).filter(User.email == data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    # ensure role exists and assign role_id
+    from models.role import Role
+    role_obj = db.query(Role).filter(Role.name == "coast_guard").first()
+    if not role_obj:
+        role_obj = Role(name="coast_guard", description="Coast guard role")
+        db.add(role_obj)
+        db.flush()
+
+    user = User(name=data.name, email=data.email, password_hash=hash_password(data.password), role_id=role_obj.id)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"ok": True, "user": {"id": user.id, "email": user.email, "role": user.role}}
 
 
 @router.get("/users", response_model=list[UserOut])
