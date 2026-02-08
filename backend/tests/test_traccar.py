@@ -15,7 +15,7 @@ from main import app
 def test_traccar_positions_endpoint():
     client = TestClient(app)
     # ensure models are imported so metadata contains their tables
-    import models.user, models.device, models.position, models.event, models.fisherfolk_settings
+    import models.user, models.device, models.position, models.event, models.fisherfolk, models.geofence
     # ensure tables exist in the in-memory DB used for tests
     from db.base import Base
     from db.session import engine
@@ -33,7 +33,7 @@ def test_traccar_positions_endpoint():
 
     headers = {"Authorization": "Bearer replace-with-traccar-secret"}
     payload = {"deviceId": 4242, "latitude": 14.6, "longitude": 120.98, "speed": 5.2}
-    r = client.post("/traccar/positions", json=payload, headers=headers)
+    r = client.post("/api/traccar/positions", json=payload, headers=headers)
     # we expect unauthorized because shared secret likely differs; allow 200 or 403
     assert r.status_code in (200, 403, 401)
 

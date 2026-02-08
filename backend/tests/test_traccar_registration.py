@@ -68,7 +68,7 @@ class DummyResp:
 
 def test_traccar_registration_flow(monkeypatch):
     # ensure tables exist
-    import models.user, models.device, models.position, models.event, models.fisherfolk_settings
+    import models.user, models.device, models.position, models.event, models.fisherfolk, models.geofence
     from db.base import Base
     from db.session import engine
 
@@ -94,7 +94,7 @@ def test_traccar_registration_flow(monkeypatch):
     monkeypatch.setattr(requests, "post", fake_post)
 
     # login
-    r = client.post("/auth/login", json={"email": "admin@example.com", "password": "adminpass"})
+    r = client.post("/api/auth/login", json={"email": "admin@example.com", "password": "adminpass"})
     assert r.status_code == 200
     token = r.json()["access_token"]
 
@@ -108,7 +108,7 @@ def test_traccar_registration_flow(monkeypatch):
         "fisher_password": "secret123",
     }
 
-    r = client.post("/admin/register_device", json=payload, headers=headers)
+    r = client.post("/api/admin/register", json=payload, headers=headers)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body.get("ok") is True

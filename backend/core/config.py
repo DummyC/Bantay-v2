@@ -50,8 +50,8 @@ else:
         DATABASE_URL: str = "sqlite:///./bantay.db"
         TRACCAR_SHARED_SECRET: str = "traccar_shared_secret"
         # Traccar API integration for registering devices (required in non-testing)
-        TRACCAR_API_URL: str = "https://traccar.dummycore.top"
-        TRACCAR_API_TOKEN: str = "RjBEAiBSYj2DQ5WAxhG6m7ORQhgtmdnn-9GZsfzsMqNyA9Y07gIgQk17ALtZ8vToLxTvk412Llj5oK_gyHJ0aOggOM3VawV7InUiOjEsImUiOiIyMDI2LTA5LTI3VDE2OjAwOjAwLjAwMCswMDowMCJ9"
+        TRACCAR_API_URL: str = "http://gt06.dummycore.top:8082"
+        TRACCAR_API_TOKEN: str = "RSDBGAiEA7hhAOFmBU0Yj8ms6tRmI2lZxtZasoxHhNrOm5yBgKBcCIQDeajBwOZcpkKJABudOtLCuOiiHLFsPA1Jb8dvqK0cH-HsiaSI6MzQwNDM4MjY2Njk4MDM1NDA3MywidSI6MSwiZSI6IjIwMjctMDEtMzFUMTY6MDA6MDAuMDAwKzAwOjAwIn0"
         # When running tests, set TESTING=1 in env to bypass external integrations
         TESTING: bool = False
         # Optional default admin user to create on startup (useful for dev/testing)

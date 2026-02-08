@@ -49,7 +49,7 @@ def test_login_endpoint(tmp_path):
         db.close()
 
     client = TestClient(app)
-    r = client.post("/auth/login", json={"email": "tester@example.com", "password": "s3cret"})
+    r = client.post("/api/auth/login", json={"email": "tester@example.com", "password": "s3cret"})
     assert r.status_code == 200
     body = r.json()
     assert "access_token" in body

@@ -49,7 +49,8 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
             longitude=it.get("longitude"),
             speed=it.get("speed"),
             course=it.get("course"),
-            fix_time=it.get("fixTime") or it.get("fix_time"),
+            timestamp=it.get("fixTime") or it.get("fix_time"),
+            battery_percent=it.get("batteryPercent") or it.get("battery_percent") or it.get("battery"),
             attributes=it.get("attributes"),
         )
         db.add(pos)
@@ -64,7 +65,8 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
             "latitude": pos.latitude,
             "longitude": pos.longitude,
             "speed": pos.speed,
-            "fixTime": str(pos.fix_time) if pos.fix_time else None,
+            "timestamp": str(pos.timestamp) if pos.timestamp else None,
+            "battery_percent": pos.battery_percent,
         }
         # await broadcast to ensure coroutine is executed and avoid un-awaited warnings
         try:
@@ -104,7 +106,7 @@ async def receive_events(payload: Any = Body(...), db: Session = Depends(get_db)
             "type": "event",
             "eventType": ev.event_type,
             "deviceId": ev.device_id,
-            "timestamp": str(ev.server_time),
+            "timestamp": str(ev.timestamp),
             "attributes": ev.attributes,
         }
         try:

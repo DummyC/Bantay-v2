@@ -11,6 +11,7 @@ class UserOut(BaseModel):
     role: str
     is_active: bool
     created_at: Optional[datetime]
+    medical_record: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

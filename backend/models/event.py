@@ -9,5 +9,5 @@ class Event(Base):
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     event_type = Column(String, nullable=False)
-    server_time = Column(DateTime(timezone=True), server_default=func.now())
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
     attributes = Column(JSON, nullable=True)

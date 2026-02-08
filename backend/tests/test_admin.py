@@ -29,7 +29,7 @@ def ensure_admin(db):
 def test_register_device_flow(monkeypatch):
     client = TestClient(app)
     # ensure models are imported so metadata contains their tables
-    import models.user, models.device, models.position, models.event, models.fisherfolk_settings
+    import models.user, models.device, models.position, models.event, models.fisherfolk, models.geofence
     # ensure tables exist in the in-memory DB used for tests
     from db.base import Base
     from db.session import engine
@@ -51,7 +51,7 @@ def test_register_device_flow(monkeypatch):
     db = SessionLocal()
     admin = ensure_admin(db)
     # login
-    r = client.post("/auth/login", json={"email": "admin@example.com", "password": "adminpass"})
+    r = client.post("/api/auth/login", json={"email": "admin@example.com", "password": "adminpass"})
     assert r.status_code == 200
     token = r.json()["access_token"]
 
@@ -83,7 +83,7 @@ def test_register_device_flow(monkeypatch):
 
     monkeypatch.setattr(requests, "post", fake_post)
 
-    r = client.post("/admin/register_device", json=payload, headers=headers)
+    r = client.post("/api/admin/register", json=payload, headers=headers)
     assert r.status_code == 200
     body = r.json()
     assert body.get("ok") is True

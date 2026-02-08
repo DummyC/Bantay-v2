@@ -36,10 +36,11 @@ def upgrade():
     )
 
     op.create_table(
-        'fisherfolk_settings',
+        'fisherfolk',
         sa.Column('id', sa.Integer, primary_key=True),
         sa.Column('user_id', sa.Integer, sa.ForeignKey('users.id'), nullable=False, unique=True),
         sa.Column('allow_history_access', sa.Boolean(), nullable=False, server_default=sa.sql.expression.false()),
+        sa.Column('medical_record', sa.Text, nullable=True),
     )
 
     op.create_table(
@@ -67,6 +68,6 @@ def upgrade():
 def downgrade():
     op.drop_table('events')
     op.drop_table('positions')
-    op.drop_table('fisherfolk_settings')
+    op.drop_table('fisherfolk')
     op.drop_table('devices')
     op.drop_table('users')

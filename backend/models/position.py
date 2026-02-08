@@ -12,5 +12,6 @@ class Position(Base):
     longitude = Column(Float, nullable=False)
     speed = Column(Float, nullable=True)
     course = Column(Float, nullable=True)
-    fix_time = Column(DateTime(timezone=True), nullable=True)
+    timestamp = Column(DateTime(timezone=True), nullable=True)
+    battery_percent = Column(Integer, nullable=True)
     attributes = Column(JSON, nullable=True)

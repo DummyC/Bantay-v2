@@ -12,7 +12,12 @@ class Device(Base):
     traccar_device_id = Column(Integer, unique=True, index=True)
     unique_id = Column(String, unique=True, index=True)
     name = Column(String, nullable=True)
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    last_update = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    sim_number = Column(String, nullable=True)
+    # use_alter to avoid metadata ordering issues when geofence model isn't imported
+    geofence_id = Column(Integer, ForeignKey("geofences.id", use_alter=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    owner = relationship("User")
+    user = relationship("User")
+    geofence = relationship("Geofence")

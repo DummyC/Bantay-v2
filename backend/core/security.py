@@ -71,7 +71,7 @@ def _init_pwd_context():
 
 
 pwd_context = _init_pwd_context()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 def hash_password(password: str) -> str:
@@ -152,6 +152,26 @@ def require_fisherfolk(current_user: User = Depends(get_current_user)):
     if current_user.role != "fisherfolk":
         raise HTTPException(status_code=403, detail="Fisherfolk privileges required")
     return current_user
+
+
+def can_view_medical(current_user: User, target_user_id: int) -> bool:
+    """Return True when the `current_user` is allowed to view the medical record
+    for `target_user_id`.
+
+    Rules:
+    - Administrators and coast_guard may view any fisherfolk medical_record.
+    - A user may view their own medical_record.
+    """
+    if current_user is None:
+        return False
+    # allow administrators and coast guard
+    if current_user.role in ("administrator", "coast_guard"):
+        return True
+    # allow user to view their own record
+    try:
+        return int(current_user.id) == int(target_user_id)
+    except Exception:
+        return False
 
 
 def require_coast_guard(current_user: User = Depends(get_current_user)):

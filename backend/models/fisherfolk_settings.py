@@ -1,10 +1,8 @@
-from sqlalchemy import Column, Integer, Boolean, ForeignKey
-from db.base import Base
+"""Compatibility shim for old module name.
 
+This file used to declare `FisherfolkSettings`. The model was renamed to
+`Fisherfolk` and moved to `models.fisherfolk`. Import the new class and
+re-export it under the old name for backward compatibility.
+"""
 
-class FisherfolkSettings(Base):
-    __tablename__ = "fisherfolk_settings"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    allow_history_access = Column(Boolean, default=False)
+from models.fisherfolk import Fisherfolk as FisherfolkSettings
