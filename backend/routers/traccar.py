@@ -84,6 +84,8 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
             except Exception:
                 ts_dt = None
 
+        # log types to detect type mismatches
+        print(f"[traccar] item types: latitude={type(it.get('latitude'))}, longitude={type(it.get('longitude'))}, speed={type(it.get('speed'))}, fixTime={type(ts)}")
         pos = Position(
             device_id=dev.id,
             latitude=it.get("latitude"),
@@ -103,12 +105,27 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
             db.rollback()
             continue
     try:
+        before_count = db.query(Position).count()
         db.commit()
         print(f"[traccar] committed {len(saved)} positions (attempted)")
     except Exception as e:
         print(f"[traccar] commit failed: {e}")
         db.rollback()
         return {"ok": False, "saved": 0}
+
+    # verify persistence in a fresh session
+    try:
+        vdb = SessionLocal()
+        try:
+            after_count = vdb.query(Position).count()
+            print(f"[traccar] positions table rows before={before_count} after={after_count}")
+            last_rows = vdb.query(Position).order_by(Position.id.desc()).limit(5).all()
+            for r in last_rows:
+                print(f"[traccar] stored pos id={r.id} device_id={r.device_id} lat={r.latitude} lon={r.longitude} ts={r.timestamp}")
+        finally:
+            vdb.close()
+    except Exception as e:
+        print(f"[traccar] verification query failed: {e}")
     # refresh saved positions and build a positions list
     for pos in saved:
         db.refresh(pos)
@@ -191,7 +208,26 @@ async def receive_events(payload: Any = Body(...), db: Session = Depends(get_db)
         if not dev:
             print(f"[traccar] unknown device for event with traccar id {device_id}; skipping")
             continue
-        ev = Event(device_id=dev.id, event_type=it.get("type") or it.get("eventType"), attributes=it.get("attributes"))
+        # determine event type and filter allowed types
+        raw_type = it.get("type") or it.get("eventType")
+        attrs = it.get("attributes") or {}
+        store_type = None
+        if raw_type in ("deviceOnline", "deviceOffline", "geofenceEnter", "geofenceExit"):
+            store_type = raw_type
+        elif raw_type == "alarm":
+            # check attributes for specific alarm names
+            alarm_val = None
+            if isinstance(attrs, dict):
+                alarm_val = attrs.get("alarm") or attrs.get("name") or attrs.get("type")
+            if isinstance(alarm_val, str):
+                av = alarm_val.lower()
+                if av in ("sos", "lowbattery", "low_battery", "lowbatteryalarm", "low-battery"):
+                    store_type = f"alarm:{alarm_val}"
+        if not store_type:
+            print(f"[traccar] skipping unsupported event type: {raw_type} attrs={attrs}")
+            continue
+
+        ev = Event(device_id=dev.id, event_type=store_type, attributes=attrs)
         try:
             db.add(ev)
             saved.append(ev)
