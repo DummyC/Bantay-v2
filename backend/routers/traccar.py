@@ -26,27 +26,50 @@ def verify_shared_secret(authorization: str = Header(None)):
 
 @router.post("/positions")
 async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_db), _=Depends(verify_shared_secret)):
+    # Debug: log incoming payload summary
+    try:
+        print("[traccar] receive_positions called; payload type:", type(payload), "len?", len(payload) if hasattr(payload, '__len__') else None)
+        print(payload)
+    except Exception:
+        print("[traccar] receive_positions called; unable to determine payload length")
+
     # Traccar can forward a list or a single object; handle simple cases
     items = []
     if isinstance(payload, list):
         items = payload
     elif isinstance(payload, dict):
-        # sometimes payload has "positions" key
-        items = payload.get("positions") or [payload]
+        # sometimes payload has "positions" key, or is wrapped as {"position": {...}, "device": {...}}
+        if "positions" in payload:
+            items = payload.get("positions")
+        elif "position" in payload and isinstance(payload.get("position"), dict):
+            # unwrap Traccar wrapper
+            items = [payload.get("position")]
+        else:
+            items = [payload]
     else:
         raise HTTPException(status_code=400, detail="Invalid payload")
 
     saved = []
     for it in items:
+        # support both plain Traccar position dict and wrapper formats
+        if not isinstance(it, dict):
+            print(f"[traccar] unexpected item type: {type(it)}; skipping")
+            continue
         device_id = it.get("deviceId") or it.get("device_id")
+        # if still missing, attempt to extract from nested 'device' structure
+        if device_id is None and "device" in it and isinstance(it.get("device"), dict):
+            device_id = it.get("device", {}).get("id")
+        print(f"[traccar] processing position item deviceId={device_id}")
         if device_id is None:
+            print("[traccar] position item missing deviceId; skipping")
             continue
         dev = db.query(Device).filter(Device.traccar_device_id == device_id).first()
         if not dev:
             # ignore unknown devices for now
+            print(f"[traccar] unknown device with traccar id {device_id}; skipping")
             continue
         # normalize timestamp: Traccar may send milliseconds since epoch or ISO string
-        ts = it.get("fixTime") or it.get("fix_time") or it.get("timestamp")
+        ts = it.get("fixTime") or it.get("fix_time") or it.get("timestamp") or it.get("serverTime") or it.get("deviceTime")
         ts_dt = None
         if isinstance(ts, (int, float)):
             # if large number assume milliseconds
@@ -71,9 +94,21 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
             battery_percent=it.get("batteryPercent") or it.get("battery_percent") or it.get("battery"),
             attributes=it.get("attributes"),
         )
-        db.add(pos)
-        saved.append(pos)
-    db.commit()
+        print(f"[traccar] creating Position: device_id={dev.id}, lat={pos.latitude}, lon={pos.longitude}, ts={pos.timestamp}")
+        try:
+            db.add(pos)
+            saved.append(pos)
+        except Exception as e:
+            print(f"[traccar] exception adding pos to session: {e}")
+            db.rollback()
+            continue
+    try:
+        db.commit()
+        print(f"[traccar] committed {len(saved)} positions (attempted)")
+    except Exception as e:
+        print(f"[traccar] commit failed: {e}")
+        db.rollback()
+        return {"ok": False, "saved": 0}
     # refresh saved positions and build a positions list
     for pos in saved:
         db.refresh(pos)
@@ -119,26 +154,58 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
 
 @router.post("/events")
 async def receive_events(payload: Any = Body(...), db: Session = Depends(get_db), _=Depends(verify_shared_secret)):
+    # Debug: inspect incoming events
+    try:
+        print("[traccar] receive_events called; payload type:", type(payload), "len?", len(payload) if hasattr(payload, '__len__') else None)
+        print(payload)
+    except Exception:
+        print("[traccar] receive_events called; unable to determine payload length")
+
     items = []
     if isinstance(payload, list):
         items = payload
     elif isinstance(payload, dict):
-        items = payload.get("events") or [payload]
+        # payload may contain 'events' list or be wrapped as {'event': {...}, 'device': {...}}
+        if "events" in payload:
+            items = payload.get("events")
+        elif "event" in payload and isinstance(payload.get("event"), dict):
+            items = [payload.get("event")]
+        else:
+            items = [payload]
     else:
         raise HTTPException(status_code=400, detail="Invalid payload")
 
     saved = []
     for it in items:
+        if not isinstance(it, dict):
+            print(f"[traccar] unexpected event item type: {type(it)}; skipping")
+            continue
         device_id = it.get("deviceId") or it.get("device_id")
+        if device_id is None and "device" in it and isinstance(it.get("device"), dict):
+            device_id = it.get("device", {}).get("id")
+        print(f"[traccar] processing event item deviceId={device_id}")
         if device_id is None:
+            print("[traccar] event item missing deviceId; skipping")
             continue
         dev = db.query(Device).filter(Device.traccar_device_id == device_id).first()
         if not dev:
+            print(f"[traccar] unknown device for event with traccar id {device_id}; skipping")
             continue
         ev = Event(device_id=dev.id, event_type=it.get("type") or it.get("eventType"), attributes=it.get("attributes"))
-        db.add(ev)
-        saved.append(ev)
-    db.commit()
+        try:
+            db.add(ev)
+            saved.append(ev)
+        except Exception as e:
+            print(f"[traccar] exception adding event to session: {e}")
+            db.rollback()
+            continue
+    try:
+        db.commit()
+        print(f"[traccar] committed {len(saved)} events (attempted)")
+    except Exception as e:
+        print(f"[traccar] commit failed for events: {e}")
+        db.rollback()
+        return {"ok": False, "saved": 0}
 
     for ev in saved:
         db.refresh(ev)

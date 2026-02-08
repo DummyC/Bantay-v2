@@ -44,15 +44,38 @@ async def ws_socket(websocket: WebSocket, token: Optional[str] = Query(None)):
         recent_events = db.query(Event).order_by(Event.id.desc()).limit(100).all()[::-1]
 
         # filter according to role/user
+        def pos_to_dict(p: Position):
+            return {
+                "id": p.id,
+                "device_id": p.device_id,
+                "latitude": p.latitude,
+                "longitude": p.longitude,
+                "speed": p.speed,
+                "timestamp": p.timestamp.isoformat() if p.timestamp else None,
+                "battery_percent": p.battery_percent,
+                "attributes": p.attributes,
+            }
+
+        def ev_to_dict(e: Event):
+            return {
+                "id": e.id,
+                "device_id": e.device_id,
+                "event_type": e.event_type,
+                "timestamp": e.timestamp.isoformat() if e.timestamp else None,
+                "attributes": e.attributes,
+            }
+
         if role in ("administrator", "coast_guard"):
-            msg = {"positions": [p.__dict__ for p in latest_positions], "events": [e.__dict__ for e in recent_events]}
+            msg = {"positions": [pos_to_dict(p) for p in latest_positions], "events": [ev_to_dict(e) for e in recent_events]}
+            print(f"[ws socket] sending initial snapshot to role={role}; positions={len(latest_positions)} events={len(recent_events)}")
             await manager.send_to_user(websocket, msg)
         else:
             # fisherfolk: only positions/events for their devices
             device_ids = [d.id for d in db.query(Device).filter(Device.user_id == user_id).all()]
             fp = [p for p in latest_positions if p.device_id in device_ids]
             fe = [e for e in recent_events if e.device_id in device_ids]
-            msg = {"positions": [p.__dict__ for p in fp], "events": [e.__dict__ for e in fe]}
+            msg = {"positions": [pos_to_dict(p) for p in fp], "events": [ev_to_dict(e) for e in fe]}
+            print(f"[ws socket] sending initial snapshot to user_id={user_id}; positions={len(fp)} events={len(fe)}")
             await manager.send_to_user(websocket, msg)
     finally:
         db.close()

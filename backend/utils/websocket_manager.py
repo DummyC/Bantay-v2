@@ -20,8 +20,10 @@ class ConnectionManager:
         for entry in conns:
             ws = entry.get("ws")
             try:
+                print(f"[ws manager] broadcasting message to one connection; keys={list(message.keys())}")
                 await ws.send_json(message)
             except Exception:
+                print("[ws manager] send error during broadcast; removing connection")
                 try:
                     self.active.remove(entry)
                 except ValueError:
@@ -29,9 +31,12 @@ class ConnectionManager:
 
     async def send_to_user(self, websocket: WebSocket, message: dict):
         try:
+            print(f"[ws manager] send_to_user: sending message with keys={list(message.keys())}")
             await websocket.send_json(message)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[ws manager] send_to_user error: {e}")
+            # best-effort: remove broken connection(s)
+            self.active = [a for a in self.active if a.get("ws") is not websocket]
 
 
 manager = ConnectionManager()
