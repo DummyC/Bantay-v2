@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -44,28 +46,79 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Card className="w-[380px]">
-        <CardHeader>
-          <CardTitle>Bantay</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4">
-            <div>
-              <Label className="pb-2" htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-            <div>
-              <Label className="pb-2" htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-            </div>
-            <div>
-              <Button variant="outline" type="submit" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</Button>
-            </div>
-            {error && <div className="text-destructive">{error}</div>}
-          </form>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-4 py-10 sm:px-8 lg:flex-row lg:py-0">
+        <div className="w-full max-w-xl space-y-4 pb-10 text-center lg:w-1/2 lg:pb-0 lg:text-left">
+          <Badge variant="outline" className="border-white/20 bg-white/10 text-slate-200">
+            Coastal Safety
+          </Badge>
+          <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl">
+            Bantay Operations Console
+          </h1>
+          <p className="max-w-xl text-sm text-slate-300 sm:text-base">
+            Monitor vessels, receive alerts, and respond quickly. Secure access for administrators, coast guards, and fisherfolk.
+          </p>
+          <div className="flex flex-wrap gap-2 text-xs text-slate-300">
+            <Badge variant="outline" className="border-white/15 bg-white/5 text-slate-200">Real-time positions</Badge>
+            <Badge variant="outline" className="border-white/15 bg-white/5 text-slate-200">Event alerts</Badge>
+            <Badge variant="outline" className="border-white/15 bg-white/5 text-slate-200">Role-based access</Badge>
+          </div>
+        </div>
+
+        <div className="w-full max-w-lg lg:w-1/2">
+          <Card className="border-white/10 bg-slate-900/70 backdrop-blur">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-xl text-white">Sign in to Bantay</CardTitle>
+              <p className="text-sm text-slate-300">Use your issued credentials to continue.</p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={onSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-slate-200" htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="bg-slate-950/60 text-white placeholder:text-slate-500"
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-200" htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="bg-slate-950/60 text-white placeholder:text-slate-500"
+                    placeholder="••••••••"
+                  />
+                </div>
+
+                {error && (
+                  <Alert variant="destructive" className="border-red-500/40 bg-red-500/10 text-red-50">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-white text-slate-900 hover:bg-slate-100"
+                >
+                  {loading ? 'Signing in…' : 'Sign in'}
+                </Button>
+                <p className="text-center text-xs text-slate-400">
+                  Access for authorized personnel only.
+                </p>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

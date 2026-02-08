@@ -3,7 +3,7 @@ from db.session import engine
 from db.base import Base
 from contextlib import asynccontextmanager
 
-from routers import auth, admin, fisherfolk, devices, traccar, websocket
+from routers import auth, admin, fisherfolk, devices, traccar, websocket, coastguard
 from core.config import settings
 from core.security import hash_password
 from db.session import SessionLocal
@@ -76,6 +76,7 @@ app.include_router(auth.router, prefix="/api/auth")
 app.include_router(admin.router, prefix="/api/admin")
 app.include_router(fisherfolk.router, prefix="/api/fisherfolk")
 app.include_router(devices.router, prefix="/api/devices")
+app.include_router(coastguard.router, prefix="/api/coastguard")
 app.include_router(traccar.router, prefix="/api/traccar")
 app.include_router(websocket.router, prefix="/api/ws")
 
