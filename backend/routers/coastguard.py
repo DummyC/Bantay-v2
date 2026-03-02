@@ -108,8 +108,17 @@ def get_history(
     except Exception:
       return None
 
-  end_dt = parse_ts(end) or datetime.now(timezone.utc)
-  start_dt = parse_ts(start) or (end_dt - timedelta(hours=hours or 12))
+  end_dt = parse_ts(end)
+  start_dt = parse_ts(start)
+
+  # If explicit range provided, honor it; otherwise fall back to trailing hours window
+  if not end_dt:
+    end_dt = datetime.now(timezone.utc)
+  if not start_dt:
+    start_dt = end_dt - timedelta(hours=hours or 12)
+
+  if start_dt > end_dt:
+    start_dt, end_dt = end_dt, start_dt
 
   from models.position import Position
 

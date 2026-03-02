@@ -1386,8 +1386,13 @@ export default function Admin() {
       <div className="flex h-screen">
         <aside className="flex h-full w-72 flex-col border-r border-white/5 bg-slate-900/70 backdrop-blur">
           <div className="px-4 py-4">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Bantay</p>
-            <p className="text-base font-semibold text-white">Admin Panel</p>
+            <div className="flex items-center gap-3">
+              <img src="/icons/bantay-icon.svg" alt="Bantay" className="h-9 w-auto" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Bantay</p>
+                <p className="text-base font-semibold text-white">Admin Panel</p>
+              </div>
+            </div>
           </div>
 
           <nav className="flex-1 space-y-1 px-2">

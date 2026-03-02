@@ -125,6 +125,11 @@ function formatGMT8(ts?: string | null, fallback = 'N/A') {
   return new Date(parsed).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })
 }
 
+function toLocalInputValue(d: Date) {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function eventLabel(eventType: string) {
   if (!eventType) return 'Event'
   if (eventType.startsWith('alarm')) return 'SOS'
@@ -267,7 +272,8 @@ export default function CoastGuard() {
   const [dismissPassword, setDismissPassword] = useState('')
   const [dismissError, setDismissError] = useState<string | null>(null)
   const [dismissLoading, setDismissLoading] = useState(false)
-  const [historyHours, setHistoryHours] = useState(12)
+  const [historyStart, setHistoryStart] = useState<string>('')
+  const [historyEnd, setHistoryEnd] = useState<string>('')
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [historyPoints, setHistoryPoints] = useState<PositionPayload[]>([])
@@ -351,14 +357,17 @@ export default function CoastGuard() {
     loadGeofences()
   }, [authHeader])
 
-  const fetchHistory = async (deviceId: number, hoursOverride?: number) => {
+  const fetchHistory = async (deviceId: number, startOverride?: string, endOverride?: string) => {
     setHistoryLoading(true)
     setHistoryError(null)
     setHistorySelectedPoint(null)
-    const hrs = Math.max(1, hoursOverride ?? historyHours)
-    setHistoryHours(hrs)
+    const startVal = startOverride || historyStart
+    const endVal = endOverride || historyEnd
+    const params = new URLSearchParams({ device_id: String(deviceId) })
+    if (startVal) params.append('start', new Date(startVal).toISOString())
+    if (endVal) params.append('end', new Date(endVal).toISOString())
     try {
-      const res = await fetch(`/api/coastguard/history?device_id=${deviceId}&hours=${hrs}`, {
+      const res = await fetch(`/api/coastguard/history?${params.toString()}`, {
         headers: authHeader ? { Authorization: authHeader } : undefined,
       })
       if (!res.ok) {
@@ -371,7 +380,7 @@ export default function CoastGuard() {
       setSelectedId(deviceId)
       setDetailOpen(false)
       if (!data.length) {
-        setHistoryError(`No history in the last ${hrs} hours for this tracker`)
+        setHistoryError('No history in the selected range for this tracker')
       }
     } catch (err: any) {
       setHistoryError(err?.message || 'Unable to load history')
@@ -387,6 +396,18 @@ export default function CoastGuard() {
     setHistoryPoints([])
     setHistorySelectedPoint(null)
     setHistoryError(null)
+    setHistoryStart('')
+    setHistoryEnd('')
+  }
+
+  const startHistoryForDevice = (deviceId: number) => {
+    const end = new Date()
+    const start = new Date(end.getTime() - 12 * 60 * 60 * 1000)
+    const startStr = toLocalInputValue(start)
+    const endStr = toLocalInputValue(end)
+    setHistoryStart(startStr)
+    setHistoryEnd(endStr)
+    fetchHistory(deviceId, startStr, endStr)
   }
 
   useEffect(() => {
@@ -692,9 +713,12 @@ export default function CoastGuard() {
       <div className="flex h-screen">
         <aside className="flex h-full w-full max-w-[360px] flex-col border-r border-white/5 bg-slate-900/70 backdrop-blur">
           <div className="flex items-center justify-between px-4 py-4 gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Coast Guard</p>
-              <p className="text-base font-semibold text-white">Live Tracker Console</p>
+            <div className="flex items-center gap-3">
+              <img src="/icons/bantay-icon.svg" alt="Bantay" className="h-10 w-auto" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Coast Guard</p>
+                <p className="text-base font-semibold text-white">Live Tracker Console</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge className={`px-3 py-1 text-xs ${
@@ -853,11 +877,8 @@ export default function CoastGuard() {
                   key={g.id}
                   positions={g.polygon}
                   pathOptions={{ color: '#22d3ee', weight: 2, opacity: 0.7, fillOpacity: 0.05 }}
-                >
-                  <LeafletTooltip direction="top" offset={[0, -4]} className="text-xs font-semibold text-slate-900">
-                    {g.name}
-                  </LeafletTooltip>
-                </Polygon>
+                  interactive={false}
+                />
               ))}
 
             {!initialCentered && firstPosition && (
@@ -941,23 +962,28 @@ export default function CoastGuard() {
                     </div>
                     <Badge className="bg-cyan-500/20 text-cyan-100">{historyPoints.length} points</Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-slate-200">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-200">
                     <Clock3 className="h-4 w-4 text-cyan-200" />
-                    <span>Last {historyHours}h</span>
+                    <span className="text-xs uppercase tracking-[0.14em] text-slate-400">From</span>
                     <Input
-                      type="number"
-                      min={1}
-                      max={168}
-                      value={historyHours}
-                      onChange={(e) => setHistoryHours(parseInt(e.target.value, 10) || 1)}
-                      className="h-9 w-20 bg-slate-800 text-white"
+                      type="datetime-local"
+                      value={historyStart}
+                      onChange={(e) => setHistoryStart(e.target.value)}
+                      className="h-9 bg-slate-800 text-white"
+                    />
+                    <span className="text-xs uppercase tracking-[0.14em] text-slate-400">To</span>
+                    <Input
+                      type="datetime-local"
+                      value={historyEnd}
+                      onChange={(e) => setHistoryEnd(e.target.value)}
+                      className="h-9 bg-slate-800 text-white"
                     />
                     <Button
                       size="sm"
                       variant="secondary"
                       disabled={historyLoading}
                       className="bg-cyan-600 text-white hover:bg-cyan-500"
-                      onClick={() => historyFocusId && fetchHistory(historyFocusId, historyHours)}
+                      onClick={() => historyFocusId && fetchHistory(historyFocusId)}
                     >
                       {historyLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Refresh
@@ -1179,7 +1205,7 @@ export default function CoastGuard() {
                 <Button
                   variant="secondary"
                   className="bg-cyan-600 text-white hover:bg-cyan-500"
-                  onClick={() => fetchHistory(selectedTracker.device.id)}
+                  onClick={() => startHistoryForDevice(selectedTracker.device.id)}
                   disabled={historyLoading && historyFocusId === selectedTracker.device.id}
                 >
                   {historyLoading && historyFocusId === selectedTracker.device.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

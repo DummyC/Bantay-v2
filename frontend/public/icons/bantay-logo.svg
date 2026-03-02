@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-labelledby="title desc">
+  <title>Bantay Logo</title>
+  <desc>Shield and wordmark for Bantay</desc>
+  <defs>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+  <rect width="320" height="80" rx="12" fill="none" />
+  <g transform="translate(8 8)">
+    <g transform="scale(0.22)">
+      <rect x="0" y="0" width="256" height="256" rx="56" fill="url(#shieldGrad)" />
+      <path fill="#e0f2fe" d="M128 32c-40 18-76 20-105 10v73c0 60 50 103 105 125 55-22 105-65 105-125V42c-29 10-65 8-105-10Z" />
+      <rect x="122" y="70" width="12" height="82" rx="5" fill="#0f172a" fill-opacity="0.7" />
+      <path fill="#e0f2fe" d="M120 76c-22 18-40 44-46 68h54Z" />
+      <path fill="#0ea5e9" d="M136 76c22 16 42 39 48 64h-54Z" />
+      <path fill="#0f172a" fill-opacity="0.7" d="M72 158c7 22 34 46 56 46s49-24 56-46Z" />
+    </g>
+  </g>
+  <text x="96" y="48" fill="#e0f2fe" font-family="'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" letter-spacing="1.2">
+    Bantay
+  </text>
+</svg>

@@ -5,26 +5,26 @@ import { Badge } from '@/components/ui/badge'
 export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-6 sm:px-8">
+      <header className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-4 px-4 py-6 sm:flex-row sm:items-center sm:px-8">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-cyan-500/20 ring-1 ring-cyan-400/40" />
+          <img src="/icons/bantay-icon.svg" alt="Bantay" className="h-10 w-auto" />
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Bantay</p>
             <p className="text-sm font-semibold text-white">Coastal Safety Platform</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
           <Badge variant="outline" className="border-white/20 bg-white/5 text-slate-200">Secure access</Badge>
-          <Link to="/login">
-            <Button variant="secondary" className="bg-white text-slate-900 hover:bg-slate-200">Login</Button>
+          <Link to="/login" className="w-full sm:w-auto">
+            <Button variant="secondary" className="w-full bg-white text-slate-900 hover:bg-slate-200 sm:w-auto">Login</Button>
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col items-start gap-10 px-4 pb-16 pt-6 sm:px-8 lg:flex-row lg:items-center lg:gap-16 lg:pb-24">
-        <div className="w-full max-w-2xl space-y-6">
+      <main className="mx-auto flex w-full max-w-6xl flex-col items-start gap-10 px-4 pb-20 pt-6 sm:px-8 lg:flex-row lg:items-center lg:gap-16">
+        <div className="w-full max-w-3xl space-y-6">
           <Badge variant="outline" className="border-cyan-400/40 bg-cyan-500/10 text-cyan-100">Coast Guard • Fisherfolk • Admin</Badge>
-          <h1 className="text-4xl font-semibold leading-tight text-white sm:text-5xl">
+          <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
             Keep fisherfolk safe with live tracking, SOS alerts, and rapid response.
           </h1>
           <p className="text-lg text-slate-200">
@@ -37,40 +37,35 @@ export default function Landing() {
             <Badge variant="outline" className="border-white/15 bg-white/5">Medical context</Badge>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link to="/login">
-              <Button size="lg" className="bg-cyan-500 text-slate-950 hover:bg-cyan-400">Proceed to login</Button>
+            <Link to="/login" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full bg-cyan-500 text-slate-950 hover:bg-cyan-400 sm:w-auto">Proceed to login</Button>
             </Link>
             <p className="text-sm text-slate-300">Authorized users only.</p>
           </div>
         </div>
 
-        <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-slate-900/60 p-6 backdrop-blur">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-white">Live watch</p>
-              <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs text-emerald-100">Operational</span>
+        <div className="flex w-full min-w-[360px] flex-col gap-4 rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur lg:w-1/2 lg:max-w-lg">
+          <p className="text-sm font-semibold text-slate-100">Trusted by responders</p>
+          <div className="grid grid-cols-2 gap-3 text-sm text-slate-200">
+            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-cyan-200">Coverage</p>
+              <p className="mt-1 text-lg font-semibold text-white">Provincial waters</p>
+              <p className="text-xs text-slate-400">Built for patrol teams and fisherfolk coordinators.</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-center text-sm text-slate-200">
-              <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
-                <p className="text-2xl font-semibold text-white">24</p>
-                <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Trackers</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
-                <p className="text-2xl font-semibold text-white">3</p>
-                <p className="text-xs uppercase tracking-[0.12em] text-slate-400">SOS (24h)</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-slate-900/60 p-4">
-                <p className="text-2xl font-semibold text-white">7</p>
-                <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Patrols</p>
-              </div>
+            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-cyan-200">Security</p>
+              <p className="mt-1 text-lg font-semibold text-white">Role-based</p>
+              <p className="text-xs text-slate-400">Only authorized users can view sensitive locations.</p>
             </div>
-            <div className="rounded-xl border border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/15 to-indigo-500/15 p-4 text-sm text-slate-200">
-              <p className="text-xs uppercase tracking-[0.14em] text-cyan-100">How it works</p>
-              <ul className="mt-2 space-y-2 list-disc pl-4">
-                <li>Vessels broadcast positions and alarms via secure devices.</li>
-                <li>Control rooms receive live updates and incident details.</li>
-                <li>Responders dispatch aid with medical context on hand.</li>
-              </ul>
+            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-cyan-200">Response</p>
+              <p className="mt-1 text-lg font-semibold text-white">SOS-first</p>
+              <p className="text-xs text-slate-400">Alerts surface with location and history context.</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-cyan-200">Reliability</p>
+              <p className="mt-1 text-lg font-semibold text-white">Built for sea</p>
+              <p className="text-xs text-slate-400">Designed for low signal and rugged use.</p>
             </div>
           </div>
         </div>

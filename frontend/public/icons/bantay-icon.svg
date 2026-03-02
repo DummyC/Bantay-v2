@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title>Bantay Icon</title>
+  <desc>Simple shield and wave mark for Bantay</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#bg)" />
+  <path fill="#e0f2fe" d="M256 96c-60 28-116 31-160 16v112c0 92 76 158 160 192 84-34 160-100 160-192V112c-44 15-100 12-160-16Z" />
+  <rect x="249" y="168" width="14" height="128" rx="6" fill="#0f172a" fill-opacity="0.7" />
+  <path fill="#e0f2fe" d="M246 176c-34 28-62 68-70 106h82Z" />
+  <path fill="#0ea5e9" d="M266 176c34 24 64 60 74 102h-82Z" />
+  <path fill="#0f172a" fill-opacity="0.7" d="M170 292c10 34 52 70 86 70s76-36 86-70Z" />
+</svg>
