@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: bantay-postgres
+    environment:
+      POSTGRES_DB: bantay
+      POSTGRES_USER: bantay
+      POSTGRES_PASSWORD: bantay
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bantay-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://bantay:bantay@postgres:5432/bantay
+      SECRET_KEY: change-me
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: adminpass
+      ADMIN_NAME: Admin
+      ADMIN_CREATE_ON_STARTUP: "true"
+      TRACCAR_API_URL: ""
+      TRACCAR_API_TOKEN: ""
+      TRACCAR_SHARED_SECRET: ""
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: bantay-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

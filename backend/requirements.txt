@@ -9,3 +9,4 @@ pydantic-settings>=0.1
 requests>=2.31
 httpx>=0.24
 alembic>=1.11
+psycopg2-binary>=2.9

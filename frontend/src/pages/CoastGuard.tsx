@@ -6,6 +6,7 @@ import {
   Marker,
   Tooltip as LeafletTooltip,
   Polyline,
+  Polygon,
   useMap,
 } from 'react-leaflet'
 import * as L from 'leaflet'
@@ -140,10 +141,54 @@ function trackerStatus(t: TrackerState): 'online' | 'offline' | 'unknown' {
     // A recent position beats an offline event, even if deviceOnline wasn't sent
     return 'online'
   }
-  if (t.lastEvent?.event_type === 'deviceOffline') return 'online'
+  if (t.lastEvent?.event_type === 'deviceOffline') return 'offline'
   if (t.lastEvent?.event_type === 'deviceOnline') return 'online'
   if (posTs && !Number.isNaN(posTs)) return 'offline'
   return 'unknown'
+}
+
+type GeofenceShape = {
+  id: number
+  name: string
+  polygon: [number, number][][]
+}
+
+function parseWktPolygon(area?: string | null): [number, number][][] | null {
+  if (!area) return null
+  const lower = area.trim().toLowerCase()
+  if (!lower.startsWith('polygon')) return null
+  const start = area.indexOf('(')
+  const end = area.lastIndexOf(')')
+  if (start === -1 || end === -1 || end <= start) return null
+  const inner = area.slice(start, end + 1)
+  const rings = inner
+    .split('),')
+    .map((segment) => segment.replace(/[()]/g, '').trim())
+    .filter(Boolean)
+  const parsed: [number, number][][] = []
+  for (const ring of rings) {
+    const points = ring
+      .split(',')
+      .map((pair) => pair.trim())
+      .filter(Boolean)
+      .map((pair) => {
+        const parts = pair.split(/\s+/).filter(Boolean)
+        if (parts.length < 2) return null
+        const lat = Number(parts[0])
+        const lon = Number(parts[1])
+        if (Number.isNaN(lat) || Number.isNaN(lon)) return null
+        return [lat, lon] as [number, number]
+      })
+      .filter(Boolean) as [number, number][]
+    if (points.length < 3) continue
+    const first = points[0]
+    const last = points[points.length - 1]
+    if (first[0] !== last[0] || first[1] !== last[1]) {
+      points.push([first[0], first[1]])
+    }
+    parsed.push(points)
+  }
+  return parsed.length ? parsed : null
 }
 
 function batteryFromPayload(p: PositionPayload): number | null {
@@ -228,6 +273,8 @@ export default function CoastGuard() {
   const [historyPoints, setHistoryPoints] = useState<PositionPayload[]>([])
   const [historyFocusId, setHistoryFocusId] = useState<number | null>(null)
   const [historySelectedPoint, setHistorySelectedPoint] = useState<PositionPayload | null>(null)
+  const [geofences, setGeofences] = useState<GeofenceShape[]>([])
+  const [geofenceError, setGeofenceError] = useState<string | null>(null)
 
   const authValue = typeof window !== 'undefined' ? localStorage.getItem('auth') : null
   const token = useMemo(() => {
@@ -274,6 +321,34 @@ export default function CoastGuard() {
       }
     }
     loadDevices()
+  }, [authHeader])
+
+  useEffect(() => {
+    async function loadGeofences() {
+      if (!authHeader) return
+      setGeofenceError(null)
+      try {
+        const res = await fetch('/api/coastguard/geofences', {
+          headers: { Authorization: authHeader },
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body?.detail || 'Failed to load geofences')
+        }
+        const data = await res.json()
+        const shapes: GeofenceShape[] = []
+        for (const g of Array.isArray(data) ? data : []) {
+          const coords = parseWktPolygon(g.area)
+          if (coords) {
+            shapes.push({ id: g.id, name: g.name || `Geofence ${g.id}`, polygon: coords })
+          }
+        }
+        setGeofences(shapes)
+      } catch (err: any) {
+        setGeofenceError(err?.message || 'Failed to load geofences')
+      }
+    }
+    loadGeofences()
   }, [authHeader])
 
   const fetchHistory = async (deviceId: number, hoursOverride?: number) => {
@@ -756,6 +831,14 @@ export default function CoastGuard() {
             </div>
           )}
 
+          {geofenceError && (
+            <div className="absolute left-4 top-20 z-30 max-w-md">
+              <Alert variant="destructive" className="bg-red-500/70 text-red-100">
+                <AlertDescription>{geofenceError}</AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           <MapContainer
             center={firstPosition || defaultCenter}
             zoom={10}
@@ -764,6 +847,18 @@ export default function CoastGuard() {
             preferCanvas
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+              {geofences.map((g) => (
+                <Polygon
+                  key={g.id}
+                  positions={g.polygon}
+                  pathOptions={{ color: '#22d3ee', weight: 2, opacity: 0.7, fillOpacity: 0.05 }}
+                >
+                  <LeafletTooltip direction="top" offset={[0, -4]} className="text-xs font-semibold text-slate-900">
+                    {g.name}
+                  </LeafletTooltip>
+                </Polygon>
+              ))}
 
             {!initialCentered && firstPosition && (
               <FlyToPosition position={firstPosition} onDone={() => setInitialCentered(true)} />

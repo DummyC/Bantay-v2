@@ -1010,7 +1010,7 @@ export default function Admin() {
         <Dialog open onOpenChange={(v) => !v && setDialog(null)}>
           <DialogContent className="bg-slate-950 text-white">
             <DialogHeader>
-              <DialogTitle>{dialog.mode === 'create' ? 'Create user' : dialog.mode === 'edit' ? 'Edit user' : dialog.mode === 'reset' ? 'Reset password' : 'User details'}</DialogTitle>
+              <DialogTitle>{dialog.mode === 'create' ? 'Create User' : dialog.mode === 'edit' ? 'Edit User' : dialog.mode === 'reset' ? 'Reset Password' : 'User Details'}</DialogTitle>
               <DialogDescription className="text-slate-400">
                 {dialog.mode === 'detail' && 'Review user details'}
                 {dialog.mode === 'reset' && 'Set a new password for this user'}
@@ -1257,7 +1257,7 @@ export default function Admin() {
           <DialogContent className="bg-slate-950 text-white">
             <DialogHeader>
               <DialogTitle>
-                {dialog.role === 'fisher' ? 'Register fisher with device' : dialog.role === 'coast_guard' ? 'Register coast guard' : 'Register admin'}
+                {dialog.role === 'fisher' ? 'Register Fisher with Device' : dialog.role === 'coast_guard' ? 'Register Coast Guard' : 'Register Admin'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
