@@ -41,7 +41,7 @@ export default function CoastGuardAccount() {
     const match = authValue.match(/\s*bearer\s+(.+)/i)
     return match ? match[1] : authValue
   }, [authValue])
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : undefined
+  const authHeader = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : undefined), [token])
 
   useEffect(() => {
     if (!authValue) {
@@ -63,7 +63,7 @@ export default function CoastGuardAccount() {
       }
     }
     loadProfile()
-  }, [authHeader])
+  }, [token, authHeader])
 
   const handleLogout = async () => {
     try {
