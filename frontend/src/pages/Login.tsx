@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { useEffect } from 'react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -13,6 +14,27 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const token = localStorage.getItem('auth')
+    if (!token) return
+    ;(async () => {
+      try {
+        const me = await fetch('/api/auth/me', { headers: { Authorization: token } })
+        if (!me.ok) {
+          localStorage.removeItem('auth')
+          return
+        }
+        const u = await me.json()
+        const role = u.role?.name || u.role
+        if (role === 'administrator') navigate('/admin')
+        else if (role === 'coast_guard') navigate('/coast-guard')
+        else navigate('/fisherfolk')
+      } catch (err) {
+        localStorage.removeItem('auth')
+      }
+    })()
+  }, [navigate])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()

@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from core.security import verify_password, hash_password, create_access_token, get_current_user, get_db, decode_token
 from fastapi.security import OAuth2PasswordBearer
-from schemas.auth import LoginIn, Token, RegisterIn
+from schemas.auth import LoginIn, Token, RegisterIn, PasswordChangeIn
 from schemas.user import UserOut, UserCreate
 from models.user import User
 from core.config import settings
@@ -85,4 +85,17 @@ def me(current_user: User = Depends(get_current_user)):
 @router.post("/logout")
 def logout():
     # frontend should discard token; server can implement blacklist if desired
+    return {"ok": True}
+
+
+@router.post("/change-password")
+def change_password(payload: PasswordChangeIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user or not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid current password")
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    user.password_hash = hash_password(payload.new_password)
+    db.add(user)
+    db.commit()
     return {"ok": True}

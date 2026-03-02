@@ -24,6 +24,28 @@ def verify_shared_secret(authorization: str = Header(None)):
         raise HTTPException(status_code=403, detail="Invalid shared secret")
 
 
+def _parse_battery(it: dict) -> Any:
+    # check explicit keys first
+    for key in ["batteryPercent", "battery_percent", "battery_level", "battery"]:
+        if key in it and it.get(key) is not None:
+            val = it.get(key)
+            try:
+                return float(val)
+            except Exception:
+                pass
+    # check attributes map
+    attrs = it.get("attributes") or {}
+    if isinstance(attrs, dict):
+        for key in ["battery", "batteryLevel", "battery_percent", "batteryPercent", "battery_level"]:
+            if key in attrs and attrs.get(key) is not None:
+                val = attrs.get(key)
+                try:
+                    return float(val)
+                except Exception:
+                    continue
+    return None
+
+
 @router.post("/positions")
 async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_db), _=Depends(verify_shared_secret)):
     # Debug: log incoming payload summary
@@ -93,7 +115,7 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
             speed=it.get("speed"),
             course=it.get("course"),
             timestamp=ts_dt,
-            battery_percent=it.get("batteryPercent") or it.get("battery_percent") or it.get("battery"),
+            battery_percent=_parse_battery(it),
             attributes=it.get("attributes"),
         )
         print(f"[traccar] creating Position: device_id={dev.id}, lat={pos.latitude}, lon={pos.longitude}, ts={pos.timestamp}")
@@ -138,6 +160,7 @@ async def receive_positions(payload: Any = Body(...), db: Session = Depends(get_
             "latitude": pos.latitude,
             "longitude": pos.longitude,
             "speed": pos.speed,
+            "course": pos.course,
             "timestamp": pos.timestamp.isoformat() if pos.timestamp else None,
             "battery_percent": pos.battery_percent,
             "attributes": pos.attributes,
@@ -254,6 +277,7 @@ async def receive_events(payload: Any = Body(...), db: Session = Depends(get_db)
             "event_type": ev.event_type,
             "timestamp": ev.timestamp.isoformat() if ev.timestamp else None,
             "attributes": ev.attributes,
+            "resolved": False,
         })
 
     try:

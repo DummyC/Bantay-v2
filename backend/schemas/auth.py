@@ -22,3 +22,8 @@ class RegisterIn(BaseModel):
     email: str
     password: str
     role: str = "fisherfolk"
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str

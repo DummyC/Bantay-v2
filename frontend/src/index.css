@@ -107,4 +107,12 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  ::selection,
+  input::selection,
+  textarea::selection,
+  select::selection {
+    background: #22d3ee;
+    color: #0b1220;
+  }
 }

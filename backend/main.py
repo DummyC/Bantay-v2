@@ -10,6 +10,7 @@ from db.session import SessionLocal
 from models.user import User
 import logging
 from models.role import Role
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,23 @@ async def lifespan(app: FastAPI):
     import models.log
     import models.fisherfolk
     import models.fisherfolk_settings
+    import models.report
+    import models.geofence
 
     # startup: create tables
     Base.metadata.create_all(bind=engine)
+
+    # ensure legacy SQLite DBs have the traccar_id column on geofences
+    try:
+        with engine.connect() as conn:
+            res = conn.execute(text("PRAGMA table_info(geofences)")).fetchall()
+            cols = {row[1] for row in res}
+            if "traccar_id" not in cols:
+                conn.execute(text("ALTER TABLE geofences ADD COLUMN traccar_id INTEGER"))
+                conn.commit()
+    except Exception:
+        # non-fatal; keep running if migrations aren't available
+        logger.warning("Failed to ensure geofences.traccar_id column exists")
 
     # create default admin user if configured and enabled
     try:

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from models.position import Position
 from models.event import Event
 from models.device import Device
+from models.report import Report
 from sqlalchemy import func
 from datetime import datetime
 
@@ -42,6 +43,7 @@ async def ws_socket(websocket: WebSocket, token: Optional[str] = Query(None)):
 
         # recent events (most recent 100, chronological)
         recent_events = db.query(Event).order_by(Event.id.desc()).limit(100).all()[::-1]
+        reported_ids = {rid for (rid,) in db.query(Report.event_id).all()}
 
         # filter according to role/user
         def pos_to_dict(p: Position):
@@ -51,6 +53,7 @@ async def ws_socket(websocket: WebSocket, token: Optional[str] = Query(None)):
                 "latitude": p.latitude,
                 "longitude": p.longitude,
                 "speed": p.speed,
+                "course": p.course,
                 "timestamp": p.timestamp.isoformat() if p.timestamp else None,
                 "battery_percent": p.battery_percent,
                 "attributes": p.attributes,
@@ -63,6 +66,7 @@ async def ws_socket(websocket: WebSocket, token: Optional[str] = Query(None)):
                 "event_type": e.event_type,
                 "timestamp": e.timestamp.isoformat() if e.timestamp else None,
                 "attributes": e.attributes,
+                "resolved": e.id in reported_ids,
             }
 
         if role in ("administrator", "coast_guard"):
