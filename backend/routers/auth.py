@@ -1,15 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from typing import Optional
 
 from core.security import verify_password, hash_password, create_access_token, get_current_user, get_db, decode_token
 from fastapi.security import OAuth2PasswordBearer
 from schemas.auth import LoginIn, Token, RegisterIn, PasswordChangeIn
 from schemas.user import UserOut, UserCreate
 from models.user import User
+from models.log import Log
 from core.config import settings
 
 router = APIRouter()
+
+
+def _log_action(db: Session, table: str, record_id: int, action: str, actor_user_id: Optional[int] = None, details: Optional[dict] = None):
+    try:
+        entry = Log(table_name=table, record_id=record_id, action=action, actor_user_id=actor_user_id, details=details)
+        db.add(entry)
+        db.flush()
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 # Optional OAuth2 scheme for checking an optional token without auto error
 optional_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
@@ -98,4 +111,5 @@ def change_password(payload: PasswordChangeIn, db: Session = Depends(get_db), cu
     user.password_hash = hash_password(payload.new_password)
     db.add(user)
     db.commit()
+    _log_action(db, "users", user.id, "update", actor_user_id=current_user.id, details={"changed_password": True})
     return {"ok": True}

@@ -8,6 +8,7 @@ from core.security import can_view_medical, get_current_user, get_db, require_co
 from models.device import Device
 from models.event import Event
 from models.report import Report
+from models.log import Log
 from models.user import User
 from models.fisherfolk import Fisherfolk
 from models.geofence import Geofence
@@ -17,6 +18,17 @@ from schemas.user import UserOut
 from schemas.geofence import GeofenceOut
 
 router = APIRouter()
+
+
+def _log_action(db: Session, table: str, record_id: int, action: str, actor_user_id: Optional[int] = None, details: Optional[dict] = None):
+  try:
+    entry = Log(table_name=table, record_id=record_id, action=action, actor_user_id=actor_user_id, details=details)
+    db.add(entry)
+    db.flush()
+    db.commit()
+  except Exception:
+    db.rollback()
+    raise
 
 
 @router.get("/devices", response_model=List[DeviceOut])
@@ -169,6 +181,7 @@ def create_report(payload: ReportCreate, db: Session = Depends(get_db), current_
   db.add(report)
   db.commit()
   db.refresh(report)
+  _log_action(db, "reports", report.id, "create", actor_user_id=current_user.id, details={"event_id": ev.id, "resolution": resolution_text, "notes": notes})
   return report
 
 

@@ -1,13 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 
 from core.security import require_fisherfolk, get_db, get_current_user
 from models.fisherfolk import Fisherfolk
 from models.user import User
+from models.log import Log
 from schemas.fisherfolk import FisherfolkOut, MedicalRecordIn
 
 router = APIRouter()
+
+
+def _log_action(db: Session, table: str, record_id: int, action: str, actor_user_id: Optional[int] = None, details: Optional[dict] = None):
+    try:
+        entry = Log(table_name=table, record_id=record_id, action=action, actor_user_id=actor_user_id, details=details)
+        db.add(entry)
+        db.flush()
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 
 class HistoryPermissionIn(BaseModel):
@@ -32,6 +45,7 @@ def set_history_permission(payload: HistoryPermissionIn, current_user: User = De
         settings.allow_history_access = payload.allow_history_access
     db.commit()
     db.refresh(settings)
+    _log_action(db, "fisherfolk", settings.id, "update", actor_user_id=current_user.id, details={"allow_history_access": settings.allow_history_access})
     return {"ok": True, "allow_history_access": settings.allow_history_access, "medical_record": settings.medical_record}
 
 
@@ -53,4 +67,5 @@ def set_medical_record(payload: MedicalRecordIn, current_user: User = Depends(re
         settings.medical_record = payload.medical_record
     db.commit()
     db.refresh(settings)
+    _log_action(db, "fisherfolk", settings.id, "update", actor_user_id=current_user.id, details={"medical_record": settings.medical_record})
     return {"ok": True, "medical_record": settings.medical_record}

@@ -93,6 +93,7 @@ type LogRecord = {
   action: string
   actor_user_id?: number | null
   actor_name?: string | null
+  actor_role?: string | null
   timestamp?: string | null
   details?: Record<string, unknown> | null
 }
@@ -136,6 +137,21 @@ function formatGMT8(ts?: string | null, fallback = 'N/A') {
   return new Date(parsed).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })
 }
 
+function formatTableName(name?: string | null) {
+  if (!name) return 'Unknown'
+  return name
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function formatActionName(name?: string | null) {
+  if (!name) return 'Unknown'
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
 function intOrNull(value: string) {
   const num = Number(value)
   return Number.isNaN(num) ? null : num
@@ -171,6 +187,7 @@ export default function Admin() {
   const [reportResolutionFilter, setReportResolutionFilter] = useState<'all' | 'rescued' | 'false alarm' | 'other'>('all')
   const [logActionFilter, setLogActionFilter] = useState<'all' | 'create' | 'update' | 'delete'>('all')
   const [logTableFilter, setLogTableFilter] = useState<'all' | 'users' | 'devices' | 'geofences' | 'reports' | 'events'>('all')
+  const [logRoleFilter, setLogRoleFilter] = useState<'all' | 'administrator' | 'coast_guard' | 'fisherfolk'>('all')
 
   const authValue = typeof window !== 'undefined' ? localStorage.getItem('auth') : null
   const token = useMemo(() => {
@@ -367,10 +384,11 @@ export default function Admin() {
     return logs.filter((l) => {
       if (logActionFilter !== 'all' && l.action.toLowerCase() !== logActionFilter) return false
       if (logTableFilter !== 'all' && l.table_name.toLowerCase() !== logTableFilter) return false
+      if (logRoleFilter !== 'all' && (l.actor_role || '').toLowerCase() !== logRoleFilter) return false
       if (!term) return true
-      return [l.table_name, l.action, l.actor_name, l.details ? JSON.stringify(l.details) : ''].some((v) => (v || '').toLowerCase().includes(term))
+      return [l.table_name, l.action, l.actor_name, l.actor_role, l.details ? JSON.stringify(l.details) : ''].some((v) => (v || '').toLowerCase().includes(term))
     })
-  }, [logs, search, logActionFilter, logTableFilter])
+  }, [logs, search, logActionFilter, logTableFilter, logRoleFilter])
 
   const navItems: { key: TabKey; label: string; icon: ReactElement }[] = [
     { key: 'dashboard', label: 'Overview', icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -697,6 +715,16 @@ export default function Admin() {
               <option value="update">Update</option>
               <option value="delete">Delete</option>
             </select>
+            <select
+              value={logRoleFilter}
+              onChange={(e) => setLogRoleFilter(e.target.value as any)}
+              className="h-10 rounded-md border border-white/10 bg-slate-900/60 px-3 text-sm text-white"
+            >
+              <option value="all">All roles</option>
+              <option value="administrator">Administrators</option>
+              <option value="coast_guard">Coast guard</option>
+              <option value="fisherfolk">Fisherfolk</option>
+            </select>
           </div>
         )
       default:
@@ -984,8 +1012,11 @@ export default function Admin() {
             <Card key={l.id} className="border-white/5 bg-slate-900/70">
               <CardContent className="flex items-center justify-between gap-3 py-3">
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-white">{l.table_name} #{l.record_id}</p>
-                  <p className="text-xs text-slate-400">{l.action} by {l.actor_name || `User ${l.actor_user_id ?? 'unknown'}`}</p>
+                  <p className="text-sm font-semibold text-white">{formatTableName(l.table_name)} #{l.record_id}</p>
+                  <p className="text-xs text-slate-400">
+                    {formatActionName(l.action)} by {l.actor_name || `User ${l.actor_user_id ?? 'unknown'}`}
+                    {l.actor_role ? ` (${l.actor_role})` : ''}
+                  </p>
                   {l.details && <p className="text-xs text-slate-500">{JSON.stringify(l.details)}</p>}
                 </div>
                 <p className="text-xs text-slate-400">{formatGMT8(l.timestamp)}</p>
@@ -1381,8 +1412,8 @@ export default function Admin() {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-hidden">
-          <div className="flex h-full flex-col">
+        <main className="flex-1 overflow-hidden min-h-0">
+          <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-center justify-between border-b border-white/5 bg-slate-900/80 px-6 py-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Admin</p>
@@ -1401,7 +1432,7 @@ export default function Admin() {
               {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
             </div>
 
-            <ScrollArea className="flex-1 p-6">
+            <ScrollArea className="flex-1 min-h-0 overflow-y-auto p-6">
               {loading ? (
                 <div className="flex h-full items-center justify-center text-slate-300">
                   <Activity className="mr-2 h-5 w-5 animate-spin" /> Loading...

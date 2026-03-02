@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional
 import requests
 
-from core.security import require_admin, get_db, hash_password, can_view_medical
+from core.security import require_admin, get_db, hash_password, can_view_medical, get_current_user
 from core.config import settings
 from schemas.user import UserOut
 from models.user import User
@@ -19,10 +19,22 @@ from models.fisherfolk import Fisherfolk
 from models.geofence import Geofence
 from models.report import Report
 from models.log import Log
+from models.role import Role
 from schemas.geofence import GeofenceOut, GeofenceCreate, GeofenceUpdate
 from schemas.report import ReportWithDevice
 
 router = APIRouter()
+
+
+def _log_action(db: Session, table: str, record_id: int, action: str, actor_user_id: Optional[int] = None, details: Optional[dict] = None):
+    try:
+        entry = Log(table_name=table, record_id=record_id, action=action, actor_user_id=actor_user_id, details=details)
+        db.add(entry)
+        db.flush()
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
 
 class RegisterDeviceIn(BaseModel):
     traccar_device_id: Optional[int] = None
@@ -249,7 +261,7 @@ def _gpx_to_wkt(text: str) -> Optional[str]:
 
 
 @router.post("/register")
-def register(data: RegisterDeviceIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def register(data: RegisterDeviceIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     # require Traccar API credentials unless testing
     env_testing = os.environ.get("TESTING") in ("1", "true", "True")
     # allow an explicit runtime bypass for tests or local runs
@@ -323,6 +335,9 @@ def register(data: RegisterDeviceIn, db: Session = Depends(get_db), _=Depends(re
     except Exception:
         pass
 
+    _log_action(db, "devices", device.id, "create", actor_user_id=current_user.id, details={"fisher_id": fisher.id})
+    _log_action(db, "users", fisher.id, "create", actor_user_id=current_user.id, details={"role": "fisherfolk"})
+
     return {
         "ok": True,
         "device": {
@@ -338,13 +353,13 @@ def register(data: RegisterDeviceIn, db: Session = Depends(get_db), _=Depends(re
 
 
 @router.post("/register_fisher")
-def register_fisher(data: RegisterDeviceIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def register_fisher(data: RegisterDeviceIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Alias for /register kept for clarity: register a fisherfolk and their device."""
-    return register(data, db)
+    return register(data, db, current_user)  # type: ignore[arg-type]
 
 
 @router.post("/register_coastguard")
-def register_coastguard(data: CoastGuardCreateIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def register_coastguard(data: CoastGuardCreateIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Create a coast guard user. This endpoint requires administrator privileges."""
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
@@ -361,11 +376,12 @@ def register_coastguard(data: CoastGuardCreateIn, db: Session = Depends(get_db),
     db.add(user)
     db.commit()
     db.refresh(user)
+    _log_action(db, "users", user.id, "create", actor_user_id=current_user.id, details={"role": "coast_guard"})
     return {"ok": True, "user": {"id": user.id, "email": user.email, "role": user.role}}
 
 
 @router.post("/register_admin")
-def register_admin(data: AdminCreateIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def register_admin(data: AdminCreateIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -380,6 +396,7 @@ def register_admin(data: AdminCreateIn, db: Session = Depends(get_db), _=Depends
     db.add(user)
     db.commit()
     db.refresh(user)
+    _log_action(db, "users", user.id, "create", actor_user_id=current_user.id, details={"role": "administrator"})
     return {"ok": True, "user": {"id": user.id, "email": user.email, "role": "administrator"}}
 
 
@@ -444,7 +461,7 @@ class UserUpdateIn(BaseModel):
 
 
 @router.post("/users", response_model=UserOut)
-def create_user(data: UserCreateIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def create_user(data: UserCreateIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -452,6 +469,7 @@ def create_user(data: UserCreateIn, db: Session = Depends(get_db), _=Depends(req
     db.add(user)
     db.commit()
     db.refresh(user)
+    _log_action(db, "users", user.id, "create", actor_user_id=current_user.id, details={"role": user.role})
 
     # if created user is a fisherfolk and a medical_record was provided, create fisherfolk record
     if (data.role or user.role) == "fisherfolk":
@@ -464,7 +482,7 @@ def create_user(data: UserCreateIn, db: Session = Depends(get_db), _=Depends(req
 
 
 @router.put("/users/{user_id}", response_model=UserOut)
-def update_user(user_id: int, data: UserUpdateIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def update_user(user_id: int, data: UserUpdateIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -493,11 +511,12 @@ def update_user(user_id: int, data: UserUpdateIn, db: Session = Depends(get_db),
 
     db.commit()
     db.refresh(user)
+    _log_action(db, "users", user.id, "update", actor_user_id=current_user.id, details=data.model_dump(exclude_none=True))
     return user
 
 
 @router.delete("/users/{user_id}")
-def delete_user(user_id: int, delete_devices: bool = False, db: Session = Depends(get_db), _=Depends(require_admin)):
+def delete_user(user_id: int, delete_devices: bool = False, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Delete a user. If `delete_devices=true` then also delete all devices owned by the user."""
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
@@ -511,16 +530,18 @@ def delete_user(user_id: int, delete_devices: bool = False, db: Session = Depend
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete user: {e}")
+    _log_action(db, "users", user_id, "delete", actor_user_id=current_user.id, details={"deleted_devices": deleted_devices})
     return {"ok": True, "deleted_devices": deleted_devices}
 
 
 @router.post("/users/{user_id}/reset_password")
-def reset_password(user_id: int, data: PasswordResetIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def reset_password(user_id: int, data: PasswordResetIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.password_hash = hash_password(data.new_password)
     db.commit()
+    _log_action(db, "users", user.id, "update", actor_user_id=current_user.id, details={"reset_password": True})
     return {"ok": True}
 
 
@@ -581,6 +602,7 @@ class LogOut(BaseModel):
     action: str
     actor_user_id: Optional[int]
     actor_name: Optional[str]
+    actor_role: Optional[str]
     timestamp: Optional[datetime]
     details: Optional[dict]
 
@@ -588,7 +610,7 @@ class LogOut(BaseModel):
 
 
 @router.post("/devices")
-def create_device(data: DeviceCreateIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def create_device(data: DeviceCreateIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     if data.geofence_id is not None:
         exists = db.query(Geofence).filter(Geofence.id == int(data.geofence_id)).first()
         if not exists:
@@ -610,6 +632,7 @@ def create_device(data: DeviceCreateIn, db: Session = Depends(get_db), _=Depends
     _sync_traccar_device(device, db=db)
     db.commit()
     db.refresh(device)
+    _log_action(db, "devices", device.id, "create", actor_user_id=current_user.id, details=data.model_dump(exclude_none=True))
     try:
         _sync_device_geofence(traccar_device_id=device.traccar_device_id, new_geofence_id=device.geofence_id, db=db)
     except Exception:
@@ -627,7 +650,7 @@ def create_device(data: DeviceCreateIn, db: Session = Depends(get_db), _=Depends
 
 
 @router.put("/devices/{device_id}")
-def update_device(device_id: int, data: DeviceUpdateIn, db: Session = Depends(get_db), _=Depends(require_admin)):
+def update_device(device_id: int, data: DeviceUpdateIn, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     device = db.query(Device).filter(Device.id == int(device_id)).first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
@@ -664,6 +687,7 @@ def update_device(device_id: int, data: DeviceUpdateIn, db: Session = Depends(ge
         )
     except Exception:
         pass
+    _log_action(db, "devices", device.id, "update", actor_user_id=current_user.id, details=data.model_dump(exclude_none=True))
     return {
         "ok": True,
         "device": {
@@ -677,7 +701,7 @@ def update_device(device_id: int, data: DeviceUpdateIn, db: Session = Depends(ge
 
 
 @router.delete("/devices/{device_id}")
-def delete_device(device_id: int, delete_user: bool = False, db: Session = Depends(get_db), _=Depends(require_admin)):
+def delete_device(device_id: int, delete_user: bool = False, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     """Delete a device. If `delete_user=true` then also delete the device's owner user (if any)."""
     device = db.query(Device).filter(Device.id == int(device_id)).first()
     if not device:
@@ -695,6 +719,7 @@ def delete_device(device_id: int, delete_user: bool = False, db: Session = Depen
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete device: {e}")
+    _log_action(db, "devices", device_id, "delete", actor_user_id=current_user.id, details={"owner_deleted": owner_deleted})
     return {"ok": True, "owner_deleted": owner_deleted}
 
 
@@ -1007,6 +1032,7 @@ def list_logs(
     table: Optional[str] = None,
     action: Optional[str] = None,
     actor_user_id: Optional[int] = None,
+    actor_role: Optional[str] = None,
     q: Optional[str] = None,
     limit: int = 200,
     db: Session = Depends(get_db),
@@ -1014,7 +1040,12 @@ def list_logs(
 ):
     limit = min(max(limit, 1), 500)
     Actor = aliased(User)
-    query = db.query(Log, Actor.name.label("actor_name")).join(Actor, Actor.id == Log.actor_user_id, isouter=True)
+    RoleAlias = aliased(Role)
+    query = (
+        db.query(Log, Actor.name.label("actor_name"), RoleAlias.name.label("actor_role"))
+        .join(Actor, Actor.id == Log.actor_user_id, isouter=True)
+        .join(RoleAlias, RoleAlias.id == Actor.role_id, isouter=True)
+    )
 
     if table:
         query = query.filter(Log.table_name.ilike(f"%{table}%"))
@@ -1022,6 +1053,8 @@ def list_logs(
         query = query.filter(Log.action.ilike(f"%{action}%"))
     if actor_user_id:
         query = query.filter(Log.actor_user_id == actor_user_id)
+    if actor_role:
+        query = query.filter(RoleAlias.name.ilike(f"%{actor_role}%"))
     if q:
         like = f"%{q}%"
         query = query.filter(or_(Log.table_name.ilike(like), Log.action.ilike(like)))
@@ -1035,8 +1068,9 @@ def list_logs(
             "action": log.action,
             "actor_user_id": log.actor_user_id,
             "actor_name": actor_name,
+            "actor_role": actor_role,
             "timestamp": log.timestamp,
             "details": log.details,
         }
-        for (log, actor_name) in rows
+        for (log, actor_name, actor_role) in rows
     ]
