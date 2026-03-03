@@ -3,6 +3,43 @@
 Lightweight FastAPI backend for the Fisherfolk Safety System (Traccar integration,
 JWT auth, WebSocket events, device/user management).
 
+## Docker Compose (recommended)
+
+1) Prepare env: copy [.env.example](.env.example) to `.env` and set strong values for `SECRET_KEY`, `ADMIN_*`, `POSTGRES_PASSWORD`, `TRACCAR_SHARED_SECRET`, and (optionally) `TRACCAR_ADMIN_PASSWORD`.
+
+2) Choose a stack and start it from repo root:
+- Core stack (backend + frontend + Postgres):
+  ```bash
+  docker compose up -d
+  ```
+- Traccar stack (you provide the API token):
+  ```bash
+  docker compose -f docker-compose.traccar.yml up -d
+  ```
+- Traccar auto stack (bootstraps admin + fetches token via sidecar):
+  ```bash
+  docker compose -f docker-compose.traccar.auto.yml up -d
+  ```
+
+3) Retrieve the Traccar API token when using the auto stack (sidecar writes to a shared volume):
+- From backend (volume mounted):
+  ```bash
+  docker compose -f docker-compose.traccar.auto.yml exec backend cat /secrets/traccar_api_token
+  ```
+- Or copy from the sidecar container:
+  ```bash
+  docker compose -f docker-compose.traccar.auto.yml cp traccar-init:/secrets/traccar_api_token ./traccar_api_token
+  cat ./traccar_api_token
+  ```
+Set `TRACCAR_API_TOKEN` in `.env` (or your secret store) if you want the backend to reuse it on next starts.
+
+4) Stop the stack:
+```bash
+docker compose -f docker-compose.traccar.auto.yml down
+```
+
+Notes: the auto stack sets a long session timeout via `TRACCAR_SESSION_TIMEOUT_MS`. Rotate tokens periodically and keep `.env` out of version control.
+
 ## Quick start
 
 1. Open a terminal and enter the backend folder:
