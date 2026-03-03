@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   Siren,
   UserCircle,
+  BellRing,
   Waypoints,
 } from 'lucide-react'
 
@@ -72,6 +73,7 @@ type TrackerState = {
   device: DeviceInfo
   lastPosition?: PositionPayload
   lastEvent?: EventPayload
+  lastStatus?: 'online' | 'offline'
   batteryPercent?: number | null
   fisherName?: string | null
   medicalRecord?: string | null
@@ -86,7 +88,7 @@ type WsMessage = {
 }
 
 const defaultCenter: [number, number] = [9.7494, 124.573]
-const staleMs = 5 * 60 * 1000
+const staleMs = 15 * 60 * 1000
 
 function isSosEvent(ev: EventPayload): boolean {
   const type = ev.event_type?.toLowerCase() || ''
@@ -141,11 +143,12 @@ function eventLabel(eventType: string) {
 }
 
 function trackerStatus(t: TrackerState): 'online' | 'offline' | 'unknown' {
-  const posTs = t.lastPosition?.timestamp ? new Date(t.lastPosition.timestamp).getTime() : null
-  if (posTs && !Number.isNaN(posTs) && Date.now() - posTs <= staleMs) return 'online'
+  const posTs = parseUtc(t.lastPosition?.timestamp)
+  if (posTs !== null && Date.now() - posTs <= staleMs) return 'online'
+  if (posTs !== null && Date.now() - posTs > staleMs) return 'offline'
   if (t.lastEvent?.event_type === 'deviceOffline') return 'offline'
   if (t.lastEvent?.event_type === 'deviceOnline') return 'online'
-  return 'unknown'
+  return t.lastStatus || 'offline'
 }
 
 type GeofenceShape = {
@@ -346,6 +349,8 @@ export default function CoastGuard() {
   const [geofences, setGeofences] = useState<GeofenceShape[]>([])
   const [geofenceError, setGeofenceError] = useState<string | null>(null)
   const [manualFocus, setManualFocus] = useState<[number, number] | null>(null)
+  const alarmAudioRef = useRef<HTMLAudioElement | null>(null)
+  const [alarmBlocked, setAlarmBlocked] = useState(false)
 
   const authValue = typeof window !== 'undefined' ? localStorage.getItem('auth') : null
   const token = useMemo(() => {
@@ -509,9 +514,11 @@ export default function CoastGuard() {
           })
           incomingEvents.forEach((ev) => {
             const existing = next[ev.device_id] || { device: { id: ev.device_id } }
+            const statusHint = ev.event_type === 'deviceOffline' ? 'offline' : ev.event_type === 'deviceOnline' ? 'online' : existing.lastStatus
             next[ev.device_id] = {
               ...existing,
               lastEvent: ev,
+              lastStatus: statusHint,
             }
           })
           return next
@@ -554,6 +561,47 @@ export default function CoastGuard() {
       setAlertCenter([tracker.lastPosition.latitude, tracker.lastPosition.longitude])
     }
   }, [activeAlert, trackers])
+
+  useEffect(() => {
+    if (!alarmAudioRef.current) {
+      const audio = new Audio('/sounds/alarm.mp3')
+      audio.loop = true
+      audio.volume = 1.0
+      alarmAudioRef.current = audio
+    }
+
+    const audio = alarmAudioRef.current
+    if (!audio) return
+
+    if (activeAlert) {
+      audio
+        .play()
+        .then(() => setAlarmBlocked(false))
+        .catch(() => setAlarmBlocked(true))
+    } else {
+      audio.pause()
+      audio.currentTime = 0
+    }
+
+    return () => {
+      audio.pause()
+    }
+  }, [activeAlert])
+
+  const enableAlarmSound = async () => {
+    const audio = alarmAudioRef.current
+    if (!audio) return
+    try {
+      await audio.play()
+      setAlarmBlocked(false)
+      if (!activeAlert) {
+        audio.pause()
+        audio.currentTime = 0
+      }
+    } catch (err) {
+      setAlarmBlocked(true)
+    }
+  }
 
   useEffect(() => {
     if (!detailOpen || selectedId === null) return
@@ -642,7 +690,7 @@ export default function CoastGuard() {
   }, [historyPoints])
 
   const activeCount = trackerList.filter((t) => t.status === 'online').length
-  const sos24h = events.filter((e) => isSosEvent(e) && !e.resolved && isWithin24Hours(e.timestamp)).length
+  const sos24h = events.filter((e) => isSosEvent(e) && isWithin24Hours(e.timestamp)).length
   const geofence24h = events.filter((e) => e.event_type === 'geofenceExit' && isWithin24Hours(e.timestamp)).length
   const isAlerting = Boolean(activeAlert)
   const resolutionOptions: { key: 'rescued' | 'false_alarm' | 'other'; label: string }[] = [
@@ -720,7 +768,7 @@ export default function CoastGuard() {
   const alertsForModal = events
     .filter(
       (e) =>
-        (isSosEvent(e) && !e.resolved) ||
+        (isSosEvent(e) && isWithin24Hours(e.timestamp)) ||
         e.event_type === 'geofenceExit' ||
         e.event_type === 'geofenceEnter' ||
         e.event_type === 'deviceOffline'
@@ -1120,6 +1168,17 @@ export default function CoastGuard() {
                 />
               </div>
 
+                {alarmBlocked && activeAlert && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="flex items-center gap-2 bg-red-600 text-white hover:bg-red-500"
+                    onClick={enableAlarmSound}
+                  >
+                    <BellRing className="h-4 w-4" /> Enable alarm sound
+                  </Button>
+                )}
+
               <Button
                 size="lg"
                 variant="secondary"
@@ -1370,10 +1429,10 @@ export default function CoastGuard() {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
+                variant="secondary"
                 disabled={dismissLoading}
                 onClick={submitReport}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-cyan-600 text-white hover:bg-cyan-500"
               >
                 {dismissLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Submit report
@@ -1410,9 +1469,9 @@ function StatCard({
   return (
     <Card className={`border border-white/10 ${toneClass}`}>
       <CardContent className="flex items-center justify-between gap-3 py-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.12em] text-white/70">{label}</p>
-          <p className="text-2xl font-semibold text-white">{value}</p>
+        <div className="flex min-h-[52px] flex-col justify-between leading-tight">
+          <p className="text-xs uppercase tracking-[0.12em] text-white/70 leading-tight">{label}</p>
+          <p className="text-2xl font-semibold text-white leading-none">{value}</p>
         </div>
         {icon}
       </CardContent>
