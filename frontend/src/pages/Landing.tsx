@@ -14,9 +14,15 @@ export default function Landing() {
           </div>
         </div>
         <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
-          <Badge variant="outline" className="border-white/20 bg-white/5 text-slate-200">Secure access</Badge>
+          <Badge variant="outline" className="hidden border-white/20 bg-white/5 text-slate-200 sm:inline-flex">Secure access</Badge>
           <Link to="/login" className="w-full sm:w-auto">
-            <Button variant="secondary" className="w-full bg-white text-slate-900 hover:bg-slate-200 sm:w-auto">Login</Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full bg-white text-slate-900 hover:bg-slate-200 sm:w-auto"
+            >
+              Login
+            </Button>
           </Link>
         </div>
       </header>
@@ -44,9 +50,9 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="flex w-full min-w-[360px] flex-col gap-4 rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur lg:w-1/2 lg:max-w-lg">
+        <div className="flex w-full flex-col gap-4 rounded-2xl border border-white/10 bg-slate-900/40 p-6 backdrop-blur lg:w-1/2 lg:max-w-lg">
           <p className="text-sm font-semibold text-slate-100">Trusted by responders</p>
-          <div className="grid grid-cols-2 gap-3 text-sm text-slate-200">
+          <div className="grid grid-cols-1 gap-3 text-sm text-slate-200 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
               <p className="text-xs uppercase tracking-[0.14em] text-cyan-200">Coverage</p>
               <p className="mt-1 text-lg font-semibold text-white">Provincial waters</p>

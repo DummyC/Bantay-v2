@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   MapContainer,
@@ -223,6 +223,73 @@ function statusBg(status: 'online' | 'offline' | 'unknown') {
   return 'bg-slate-700/60 text-slate-200'
 }
 
+const alertTokens = ['ALERT', '|', 'SOS', '|', 'ALERT', '|', 'SOS', '|']
+
+function AlertMarquee({ className = '', speed = 140 }: { className?: string; speed?: number }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    const track = trackRef.current
+    if (!container || !track) return
+
+    let offset = 0
+    let raf = 0
+    let last = performance.now()
+
+    const ensureFill = () => {
+      if (!track.children.length) return
+      const containerWidth = container.offsetWidth || 1
+      while (track.scrollWidth < containerWidth * 2) {
+        const clone = track.children[0].cloneNode(true)
+        track.appendChild(clone)
+      }
+    }
+
+    ensureFill()
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(ensureFill) : null
+    resizeObserver?.observe(container)
+
+    const step = (now: number) => {
+      const dt = (now - last) / 1000
+      last = now
+      offset -= speed * dt
+
+      let first = track.firstElementChild as HTMLElement | null
+      while (first && first.offsetWidth > 0 && -offset >= first.offsetWidth) {
+        track.appendChild(first)
+        offset += first.offsetWidth
+        first = track.firstElementChild as HTMLElement | null
+      }
+
+      track.style.transform = `translateX(${offset}px)`
+      raf = requestAnimationFrame(step)
+    }
+
+    raf = requestAnimationFrame(step)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      resizeObserver?.disconnect()
+    }
+  }, [speed])
+
+  return (
+    <div ref={containerRef} className={`w-full h-full overflow-hidden ${className}`}>
+      <div ref={trackRef} className="alert-marquee-track">
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <div key={idx} className="alert-marquee-segment">
+            {alertTokens.map((token, tIdx) => (
+              <span key={`${idx}-${tIdx}`}>{token}</span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function trackerIcon(color: string, heading: number) {
   const circleSize = 22
   return L.divIcon({
@@ -233,7 +300,7 @@ function trackerIcon(color: string, heading: number) {
       <div style="position:relative;width:${circleSize}px;height:${circleSize}px;transform: rotate(${heading}deg);">
         <div style="position:absolute;inset:0;border:2px solid ${color};border-radius:50%;box-sizing:border-box;"></div>
         <div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${color};"></div>
-        <div style="position:absolute;inset:3px;border-radius:50%;background:#0f172a;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;box-shadow:0 0 0 2px ${color};">
+        <div style="position:absolute;inset:3px;border-radius:50%;background:#0f172a;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;box-shadow:0 0 0 2px ${color};transform: rotate(-${heading}deg);">
           ⛵
         </div>
       </div>
@@ -655,8 +722,9 @@ export default function CoastGuard() {
         }
         .alert-marquee-track {
           display: flex;
-          width: 240%;
-          animation: marqueeSlide 10s linear infinite;
+          align-items: center;
+          height: 100%;
+          will-change: transform;
         }
         .alert-marquee-segment {
           display: flex;
@@ -666,8 +734,8 @@ export default function CoastGuard() {
           letter-spacing: 0.32em;
           text-transform: uppercase;
           white-space: nowrap;
-          font-size: 0.95rem;
-          padding: 0 1rem;
+          font-size: 3rem;
+          padding: 0 1.25rem;
         }
         `}
       </style>
@@ -675,38 +743,14 @@ export default function CoastGuard() {
       {isAlerting && (
         <>
           <div
-            className="pointer-events-none fixed inset-0 z-40 bg-red-500/15"
+            className="pointer-events-none fixed inset-0 z-[70] bg-red-500/15"
             style={{ animation: 'alertFlash 1s ease-in-out infinite' }}
           />
-          <div className="pointer-events-none fixed top-0 left-0 right-0 z-50 h-12 overflow-hidden bg-gradient-to-b from-red-900/80 via-red-800/70 to-red-700/60 backdrop-blur">
-            <div className="alert-marquee-track text-xs text-red-100">
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="alert-marquee-segment">
-                  <span>ALERT</span>
-                  <span>|</span>
-                  <span>SOS</span>
-                  <span>|</span>
-                  <span>ALERT</span>
-                  <span>|</span>
-                  <span>SOS</span>
-                </div>
-              ))}
-            </div>
+          <div className="pointer-events-none fixed top-0 left-0 right-0 z-[70] h-20 overflow-hidden bg-gradient-to-b from-red-900/80 via-red-800/70 to-red-700/60 backdrop-blur">
+            <AlertMarquee className="text-red-100" speed={160} />
           </div>
-          <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 h-12 overflow-hidden bg-gradient-to-t from-red-900/80 via-red-800/70 to-red-700/60 backdrop-blur">
-            <div className="alert-marquee-track text-xs text-red-100" style={{ animationDuration: '12s' }}>
-              {Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="alert-marquee-segment">
-                  <span>ALERT</span>
-                  <span>|</span>
-                  <span>SOS</span>
-                  <span>|</span>
-                  <span>ALERT</span>
-                  <span>|</span>
-                  <span>SOS</span>
-                </div>
-              ))}
-            </div>
+          <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-[70] h-20 overflow-hidden bg-gradient-to-t from-red-900/80 via-red-800/70 to-red-700/60 backdrop-blur">
+            <AlertMarquee className="text-red-100" speed={140} />
           </div>
         </>
       )}
