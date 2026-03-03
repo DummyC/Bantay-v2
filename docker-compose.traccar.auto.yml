@@ -85,8 +85,9 @@ services:
       start_period: 1h
       retries: 3
     ports:
-      - "8082:8082"
-      - "5000-5500:5000-5500"
+      - "8082:8082"   # Web/UI/API
+      - "5055:5055"   # OsmAnd / HTTP legacy
+      - "5023:5023"   # Meitrack / TCP example
     volumes:
       - traccar_logs:/opt/traccar/logs
     configs:
