@@ -37,6 +37,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile.frontend
     container_name: bantay-frontend
     ports:
       - "80:80"
