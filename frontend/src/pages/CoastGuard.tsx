@@ -142,13 +142,9 @@ function eventLabel(eventType: string) {
 
 function trackerStatus(t: TrackerState): 'online' | 'offline' | 'unknown' {
   const posTs = t.lastPosition?.timestamp ? new Date(t.lastPosition.timestamp).getTime() : null
-  if (posTs && !Number.isNaN(posTs) && Date.now() - posTs <= staleMs) {
-    // A recent position beats an offline event, even if deviceOnline wasn't sent
-    return 'online'
-  }
+  if (posTs && !Number.isNaN(posTs) && Date.now() - posTs <= staleMs) return 'online'
   if (t.lastEvent?.event_type === 'deviceOffline') return 'offline'
   if (t.lastEvent?.event_type === 'deviceOnline') return 'online'
-  if (posTs && !Number.isNaN(posTs)) return 'offline'
   return 'unknown'
 }
 
@@ -323,6 +319,7 @@ export default function CoastGuard() {
   const navigate = useNavigate()
   const [trackers, setTrackers] = useState<Record<number, TrackerState>>({})
   const [events, setEvents] = useState<EventPayload[]>([])
+  const [geofenceAlertBadge, setGeofenceAlertBadge] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -348,6 +345,7 @@ export default function CoastGuard() {
   const [historySelectedPoint, setHistorySelectedPoint] = useState<PositionPayload | null>(null)
   const [geofences, setGeofences] = useState<GeofenceShape[]>([])
   const [geofenceError, setGeofenceError] = useState<string | null>(null)
+  const [manualFocus, setManualFocus] = useState<[number, number] | null>(null)
 
   const authValue = typeof window !== 'undefined' ? localStorage.getItem('auth') : null
   const token = useMemo(() => {
@@ -520,6 +518,9 @@ export default function CoastGuard() {
         })
 
         if (incomingEvents.length) {
+          if (incomingEvents.some((e) => e.event_type === 'geofenceExit' || e.event_type === 'geofenceEnter')) {
+            setGeofenceAlertBadge(true)
+          }
           const sos = incomingEvents.find((e) => isSosEvent(e) && !e.resolved)
           if (sos) {
             setActiveAlert((prev) => (prev?.eventId === sos.id ? prev : { eventId: sos.id, deviceId: sos.device_id }))
@@ -650,6 +651,18 @@ export default function CoastGuard() {
     { key: 'other', label: 'Other' },
   ]
 
+  const deviceLabel = (id: number) => trackers[id]?.device.name || trackers[id]?.device.unique_id || `Device ${id}`
+
+  const focusFromAlert = (deviceId: number) => {
+    const tracker = trackers[deviceId]
+    setSelectedId(deviceId)
+    setDetailOpen(true)
+    setAlertsOpen(false)
+    if (tracker?.lastPosition) {
+      setManualFocus([tracker.lastPosition.latitude, tracker.lastPosition.longitude])
+    }
+  }
+
   const submitReport = async () => {
     if (!activeAlert) return
     const finalResolution =
@@ -705,8 +718,18 @@ export default function CoastGuard() {
   }
 
   const alertsForModal = events
-    .filter((e) => (isSosEvent(e) && !e.resolved) || e.event_type === 'geofenceExit' || e.event_type === 'deviceOffline')
+    .filter(
+      (e) =>
+        (isSosEvent(e) && !e.resolved) ||
+        e.event_type === 'geofenceExit' ||
+        e.event_type === 'geofenceEnter' ||
+        e.event_type === 'deviceOffline'
+    )
     .sort((a, b) => (new Date(b.timestamp || 0).getTime() || 0) - (new Date(a.timestamp || 0).getTime() || 0))
+
+  useEffect(() => {
+    if (alertsOpen) setGeofenceAlertBadge(false)
+  }, [alertsOpen])
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -743,7 +766,7 @@ export default function CoastGuard() {
       {isAlerting && (
         <>
           <div
-            className="pointer-events-none fixed inset-0 z-[70] bg-red-500/15"
+            className="pointer-events-none fixed inset-0 z-[70] bg-red-500/30"
             style={{ animation: 'alertFlash 1s ease-in-out infinite' }}
           />
           <div className="pointer-events-none fixed top-0 left-0 right-0 z-[70] h-20 overflow-hidden bg-gradient-to-b from-red-900/80 via-red-800/70 to-red-700/60 backdrop-blur">
@@ -931,6 +954,7 @@ export default function CoastGuard() {
 
             {alertCenter && <FlyToPosition position={alertCenter} zoom={13} />}
             {historyCenter && <FlyToPosition position={historyCenter} zoom={12} />}
+            {manualFocus && <FlyToPosition position={manualFocus} zoom={13} onDone={() => setManualFocus(null)} />}
 
             {historyFocusId && historyPath.length > 1 && (
               <Polyline positions={historyPath} pathOptions={{ color: '#22d3ee', weight: 4, opacity: 0.9 }} />
@@ -1099,10 +1123,13 @@ export default function CoastGuard() {
               <Button
                 size="lg"
                 variant="secondary"
-                className="flex items-center gap-2 bg-slate-900/80 text-slate-100 hover:bg-slate-900"
+                className="relative flex items-center gap-2 bg-slate-900/80 text-slate-100 hover:bg-slate-900"
                 onClick={() => setAlertsOpen(true)}
               >
                 <Bell className="h-4 w-4" /> View alerts
+                {geofenceAlertBadge && (
+                  <span className="absolute -right-2 -top-2 inline-flex h-3 w-3 rounded-full bg-red-400 ring-2 ring-slate-900" />
+                )}
               </Button>
             </div>
           </div>
@@ -1118,7 +1145,11 @@ export default function CoastGuard() {
           <ScrollArea className="h-[60vh] pr-2">
             <div className="space-y-2">
               {alertsForModal.map((e) => (
-                <Card key={e.id} className="border-white/5 bg-slate-900/60">
+                <Card
+                  key={e.id}
+                  className="cursor-pointer border-white/5 bg-slate-900/60 transition hover:border-white/10 hover:bg-slate-900"
+                  onClick={() => focusFromAlert(e.device_id)}
+                >
                   <CardContent className="flex items-center justify-between gap-4 py-3">
                     <div className="flex items-center gap-3">
                       <Badge
@@ -1127,7 +1158,7 @@ export default function CoastGuard() {
                         {eventLabel(e.event_type)}
                       </Badge>
                       <div>
-                        <p className="text-sm font-semibold">Device {e.device_id}</p>
+                        <p className="text-sm font-semibold">{deviceLabel(e.device_id)}</p>
                         <p className="text-xs text-slate-400">{relativeTime(e.timestamp)}</p>
                       </div>
                     </div>
