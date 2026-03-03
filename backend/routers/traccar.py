@@ -237,6 +237,8 @@ async def receive_events(payload: Any = Body(...), db: Session = Depends(get_db)
         store_type = None
         if raw_type in ("deviceOnline", "deviceOffline", "geofenceEnter", "geofenceExit"):
             store_type = raw_type
+        elif raw_type == "deviceUnknown":
+            store_type = "deviceOffline"
         elif raw_type == "alarm":
             # check attributes for specific alarm names
             alarm_val = None
