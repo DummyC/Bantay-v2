@@ -1,13 +1,11 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:15-alpine
     container_name: bantay-postgres
     environment:
-      POSTGRES_DB: bantay
-      POSTGRES_USER: bantay
-      POSTGRES_PASSWORD: bantay
+      POSTGRES_DB: ${POSTGRES_DB:-bantay}
+      POSTGRES_USER: ${POSTGRES_USER:-bantay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bantay}
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:
@@ -19,15 +17,15 @@ services:
       dockerfile: Dockerfile
     container_name: bantay-backend
     environment:
-      DATABASE_URL: postgresql+psycopg2://bantay:bantay@postgres:5432/bantay
-      SECRET_KEY: change-me
-      ADMIN_EMAIL: admin@example.com
-      ADMIN_PASSWORD: adminpass
-      ADMIN_NAME: Admin
-      ADMIN_CREATE_ON_STARTUP: "true"
-      TRACCAR_API_URL: ""
-      TRACCAR_API_TOKEN: ""
-      TRACCAR_SHARED_SECRET: ""
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://${POSTGRES_USER:-bantay}:${POSTGRES_PASSWORD:-bantay}@postgres:5432/${POSTGRES_DB:-bantay}}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-adminpass}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
+      ADMIN_CREATE_ON_STARTUP: ${ADMIN_CREATE_ON_STARTUP:-"true"}
+      TRACCAR_API_URL: ${TRACCAR_API_URL:-}
+      TRACCAR_API_TOKEN: ${TRACCAR_API_TOKEN:-}
+      TRACCAR_SHARED_SECRET: ${TRACCAR_SHARED_SECRET:-}
     depends_on:
       - postgres
     ports:
