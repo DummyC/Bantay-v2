@@ -183,7 +183,7 @@ export default function Admin() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | 'administrator' | 'coast_guard' | 'fisherfolk'>('all')
   const [deviceOwnerFilter, setDeviceOwnerFilter] = useState<'all' | 'assigned' | 'unassigned'>('all')
-  const [alertTypeFilter, setAlertTypeFilter] = useState<'all' | 'sos' | 'geofence' | 'offline'>('sos')
+  const [alertTypeFilter, setAlertTypeFilter] = useState<'all' | 'sos' | 'geofence' | 'offline' | 'online'>('sos')
   const [reportResolutionFilter, setReportResolutionFilter] = useState<'all' | 'rescued' | 'false alarm' | 'other'>('all')
   const [logActionFilter, setLogActionFilter] = useState<'all' | 'create' | 'update' | 'delete'>('all')
   const [logTableFilter, setLogTableFilter] = useState<'all' | 'users' | 'devices' | 'geofences' | 'reports' | 'events'>('all')
@@ -359,9 +359,11 @@ export default function Admin() {
         const isSos = et.includes('sos')
         const isGeo = et.includes('geofence')
         const isOffline = et.includes('offline')
+        const isOnline = et.includes('online') && !isOffline
         if (alertTypeFilter === 'sos' && !isSos) return false
         if (alertTypeFilter === 'geofence' && !isGeo) return false
         if (alertTypeFilter === 'offline' && !isOffline) return false
+        if (alertTypeFilter === 'online' && !isOnline) return false
       }
       if (!term) return true
       return [a.device_name, a.owner_name, a.event_type, a.device_id.toString()].some((v) => (v || '').toLowerCase().includes(term))
@@ -659,6 +661,7 @@ export default function Admin() {
               <option value="all">All types</option>
               <option value="sos">SOS</option>
               <option value="geofence">Geofence</option>
+              <option value="online">Online</option>
               <option value="offline">Offline</option>
             </select>
           </div>
