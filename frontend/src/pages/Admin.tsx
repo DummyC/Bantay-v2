@@ -112,6 +112,7 @@ type DialogState =
   | { kind: 'user'; mode: 'create' | 'edit' | 'detail' | 'reset'; user?: UserRecord }
   | { kind: 'device'; mode: 'create' | 'edit' | 'detail'; device?: DeviceRecord }
   | { kind: 'geofence'; mode: 'create' | 'edit' | 'detail'; geofence?: GeofenceRecord }
+  | { kind: 'report-detail'; report: ReportRecord }
   | { kind: 'geofence-upload' }
   | { kind: 'register'; role: 'fisher' | 'coast_guard' | 'administrator' }
   | { kind: 'delete'; target: 'user' | 'device' | 'geofence'; id: number }
@@ -153,6 +154,21 @@ function formatTableName(name?: string | null) {
 function formatActionName(name?: string | null) {
   if (!name) return 'Unknown'
   return name.charAt(0).toUpperCase() + name.slice(1)
+}
+
+function formatRole(role?: string | null) {
+  if (!role) return 'Unknown'
+  const lookup: Record<string, string> = {
+    administrator: 'Administrator',
+    coast_guard: 'Coast Guard',
+    fisherfolk: 'Fisherfolk',
+  }
+  if (lookup[role]) return lookup[role]
+  return role
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 function intOrNull(value: string) {
@@ -906,7 +922,7 @@ export default function Admin() {
                   <p className="text-xs text-slate-400">{u.email}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="bg-cyan-500/20 text-cyan-100">{u.role}</Badge>
+                  <Badge className="bg-cyan-500/20 text-cyan-100">{formatRole(u.role)}</Badge>
                   {u.is_active === false && <Badge className="bg-amber-500/20 text-amber-100">Inactive</Badge>}
                   {u.created_at && <span className="text-xs text-slate-500">Joined {formatGMT8(u.created_at)}</span>}
                   <div className="flex items-center gap-2">
@@ -945,7 +961,6 @@ export default function Admin() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                   <Badge className="bg-emerald-500/15 text-emerald-200">Owner: {ownerDisplay(d.user_id)}</Badge>
-                  {d.traccar_device_id && <Badge className="bg-slate-700 text-slate-200 hidden">Traccar {d.traccar_device_id}</Badge>}
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: 'device', mode: 'detail', device: d })}>
                       <Eye className="h-4 w-4" />
@@ -978,7 +993,6 @@ export default function Admin() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-slate-800 text-slate-200">ID {g.id}</Badge>
-                  {g.traccar_id && <Badge className="bg-emerald-500/15 text-emerald-200 hidden">Traccar {g.traccar_id}</Badge>}
                   <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: 'geofence', mode: 'detail', geofence: g })}>
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -1024,7 +1038,19 @@ export default function Admin() {
       return (
         <div className="space-y-2">
           {filteredReports.map((r) => (
-            <Card key={r.id} className="border-white/5 bg-slate-900/70">
+            <Card
+              key={r.id}
+              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              onClick={() => setDialog({ kind: 'report-detail', report: r })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setDialog({ kind: 'report-detail', report: r })
+                }
+              }}
+            >
               <CardContent className="flex items-center justify-between gap-3 py-3">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
@@ -1058,7 +1084,7 @@ export default function Admin() {
                   <p className="text-sm font-semibold text-white">{formatTableName(l.table_name)} #{l.record_id}</p>
                   <p className="text-xs text-slate-400">
                     {formatActionName(l.action)} by {l.actor_name || `User ${l.actor_user_id ?? 'unknown'}`}
-                    {l.actor_role ? ` (${l.actor_role})` : ''}
+                    {l.actor_role ? ` (${formatRole(l.actor_role)})` : ''}
                   </p>
                   {l.details && <p className="text-xs text-slate-500">{JSON.stringify(l.details)}</p>}
                 </div>
@@ -1130,13 +1156,28 @@ export default function Admin() {
             )}
 
             {isDetail && dialog.user && (
-              <div className="space-y-2 text-sm text-slate-200">
-                <p><span className="text-slate-400">Name:</span> {dialog.user.name}</p>
-                <p><span className="text-slate-400">Email:</span> {dialog.user.email}</p>
-                <p><span className="text-slate-400">Role:</span> {dialog.user.role}</p>
-                <p><span className="text-slate-400">Active:</span> {dialog.user.is_active ? 'Yes' : 'No'}</p>
-                <p><span className="text-slate-400">Created:</span> {formatGMT8(dialog.user.created_at)}</p>
-                <p><span className="text-slate-400">Medical:</span> {dialog.user.medical_record || '—'}</p>
+              <div className="space-y-3 text-sm text-slate-200">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-cyan-500/20 text-cyan-100">{formatRole(dialog.user.role)}</Badge>
+                  <Badge className={dialog.user.is_active ? 'bg-emerald-500/15 text-emerald-200' : 'bg-amber-500/15 text-amber-200'}>
+                    {dialog.user.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                  {dialog.user.created_at && <span className="text-xs text-slate-500">Joined {formatGMT8(dialog.user.created_at)}</span>}
+                </div>
+                <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Name</p>
+                  <p className="text-sm text-white">{dialog.user.name}</p>
+                </div>
+                <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Email</p>
+                  <p className="text-sm text-white">{dialog.user.email}</p>
+                </div>
+                {dialog.user.role === 'fisherfolk' && (
+                  <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Medical Record</p>
+                    <p className="text-sm text-slate-100">{dialog.user.medical_record || 'No medical details provided.'}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1223,11 +1264,25 @@ export default function Admin() {
             )}
 
             {isDetail && dialog.device && (
-              <div className="space-y-2 text-sm text-slate-200">
-                <p><span className="text-slate-400">SSEN:</span> {dialog.device.name}</p>
-                <p><span className="text-slate-400">IMEI:</span> {dialog.device.unique_id || '—'}</p>
-                <p><span className="text-slate-400">Owner:</span> {ownerDisplay(dialog.device.user_id)}</p>
-                <p><span className="text-slate-400">Geofence:</span> {geofenceNameById(dialog.device.geofence_id)}</p>
+              <div className="space-y-3 text-sm text-slate-200">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-emerald-500/15 text-emerald-200">Owner: {ownerDisplay(dialog.device.user_id)}</Badge>
+                  <Badge className="bg-slate-800 text-slate-200">Geofence: {geofenceNameById(dialog.device.geofence_id)}</Badge>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-400">SSEN</p>
+                    <p className="text-sm text-white">{dialog.device.name || 'Not set'}</p>
+                  </div>
+                  <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-400">IMEI</p>
+                    <p className="text-sm text-white">{dialog.device.unique_id || 'Not set'}</p>
+                  </div>
+                  <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-400">SIM Number</p>
+                    <p className="text-sm text-white">{dialog.device.sim_number || 'Not set'}</p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1274,11 +1329,25 @@ export default function Admin() {
             )}
 
             {isDetail && dialog.geofence && (
-              <div className="space-y-2 text-sm text-slate-200">
-                <p><span className="text-slate-400">Name:</span> {dialog.geofence.name}</p>
-                <p><span className="text-slate-400">Description:</span> {dialog.geofence.description || '—'}</p>
-                <p><span className="text-slate-400">Traccar ID:</span> {dialog.geofence.traccar_id || '—'}</p>
-                <p className="break-words text-xs"><span className="text-slate-400">Area:</span> {dialog.geofence.area}</p>
+              <div className="space-y-3 text-sm text-slate-200">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-slate-800 text-slate-200">ID {dialog.geofence.id}</Badge>
+                  {dialog.geofence.traccar_id && <span className="text-xs text-slate-500">Traccar ID: {dialog.geofence.traccar_id}</span>}
+                </div>
+                <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Name</p>
+                  <p className="text-sm text-white">{dialog.geofence.name}</p>
+                </div>
+                <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Description</p>
+                  <p className="text-sm text-slate-100">{dialog.geofence.description || 'No description provided.'}</p>
+                </div>
+                <div>
+                  <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                    <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Area (WKT)</p>
+                    <p className="break-words text-xs text-slate-100">{dialog.geofence.area}</p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1322,6 +1391,87 @@ export default function Admin() {
               <Button disabled={busy} onClick={submitGeofenceUpload} className="bg-amber-600 text-white hover:bg-amber-500">
                 {busy ? 'Uploading...' : 'Upload'}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )
+    }
+
+    if (dialog.kind === 'report-detail') {
+      const r = dialog.report
+      const deviceRecord = devices.find((d) => d.id === r.device_id)
+      const geofenceRecord = deviceRecord ? geofences.find((g) => g.id === deviceRecord.geofence_id) : undefined
+      return (
+        <Dialog open onOpenChange={(v) => !v && setDialog(null)}>
+          <DialogContent className="bg-slate-950 text-white">
+            <DialogHeader>
+              <DialogTitle>Report Details</DialogTitle>
+              <DialogDescription className="text-slate-400">Review the full context of this report.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 text-sm text-slate-200">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                <Badge className="bg-cyan-500/20 text-cyan-100">Event #{r.event_id}</Badge>
+                <Badge className="bg-slate-700 text-slate-100">{r.device_name || `Device ${r.device_id}`}</Badge>
+                {r.owner_name && <Badge className="bg-slate-800 text-slate-100">Owner: {r.owner_name}</Badge>}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!deviceRecord}
+                  onClick={() => {
+                    if (deviceRecord) {
+                      setDialog({ kind: 'device', mode: 'detail', device: deviceRecord })
+                    } else {
+                      setError('Device details not available.')
+                    }
+                  }}
+                >
+                  View Device
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!geofenceRecord}
+                  onClick={() => {
+                    if (geofenceRecord) {
+                      setDialog({ kind: 'geofence', mode: 'detail', geofence: geofenceRecord })
+                    } else {
+                      setError('Geofence details not available.')
+                    }
+                  }}
+                >
+                  View Geofence
+                </Button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Resolution</p>
+                  <p className="text-base font-semibold text-white">{r.resolution}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Filed By</p>
+                  <p className="text-sm">{r.filed_by_name || `User ${r.user_id}`}</p>
+                  <p className="text-xs text-slate-500">Filed {formatGMT8(r.timestamp)}</p>
+                </div>
+              </div>
+              <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                <p className="text-xs uppercase tracking-[0.12em] text-slate-400">Notes</p>
+                <p className="text-sm text-slate-100">{r.notes || 'No notes provided.'}</p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 text-xs text-slate-400">
+                <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                  <p className="uppercase tracking-[0.12em] text-slate-500">Event Time</p>
+                  <p className="text-sm text-white">{formatGMT8(r.event_timestamp)}</p>
+                </div>
+                <div className="rounded-md border border-white/5 bg-slate-900 px-3 py-2">
+                  <p className="uppercase tracking-[0.12em] text-slate-500">Dismissal Time</p>
+                  <p className="text-sm text-white">{formatGMT8(r.dismissal_time)}</p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={() => setDialog(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
