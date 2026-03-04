@@ -1243,7 +1243,7 @@ export default function CoastGuard() {
                   </Badge>
                 </DialogTitle>
                 <DialogDescription className="space-y-1 text-slate-400">
-                  <p>SSEN: {selectedTracker.device.name || 'Unassigned'}</p>
+                  <p>SIM: {selectedTracker.device.sim_number || 'Unknown SIM'}</p>
                   <p>Fisherfolk: {selectedTracker.fisherName || 'Unknown fisherfolk'}</p>
                 </DialogDescription>
               </DialogHeader>
@@ -1372,7 +1372,7 @@ export default function CoastGuard() {
 
           <div className="space-y-4">
             <div className="rounded-md border border-white/5 bg-slate-900/60 p-3 text-sm text-slate-200">
-              <p className="font-semibold">SSEN: {selectedTracker?.device.name || `Device ${activeAlert?.deviceId ?? 'N/A'}`}</p>
+              <p className="font-semibold">SIM: {selectedTracker?.device.sim_number || 'Unknown SIM'}</p>
               <p>Fisherfolk: {selectedTracker?.fisherName || 'Unknown fisherfolk'}</p>
               <p className="text-xs text-slate-400">Event #{activeAlert?.eventId ?? 'N/A'}</p>
             </div>

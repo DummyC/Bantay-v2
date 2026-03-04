@@ -49,6 +49,7 @@ type DeviceRecord = {
   traccar_device_id?: number | null
   unique_id?: string | null
   name?: string | null
+  sim_number?: string | null
   user_id?: number | null
   geofence_id?: number | null
 }
@@ -116,7 +117,7 @@ type DialogState =
   | { kind: 'delete'; target: 'user' | 'device' | 'geofence'; id: number }
 
 const defaultUserForm = { name: '', email: '', password: '', role: 'fisherfolk', medical_record: '' }
-const defaultDeviceForm = { unique_id: '', name: '', owner_id: '', geofence_id: '' }
+const defaultDeviceForm = { unique_id: '', name: '', sim_number: '', owner_id: '', geofence_id: '' }
 const defaultGeofenceForm = { name: '', description: '', area: '' }
 const defaultRegisterForm = {
   name: '',
@@ -124,6 +125,7 @@ const defaultRegisterForm = {
   password: '',
   unique_id: '',
   device_name: '',
+  sim_number: '',
   medical_record: '',
   geofence_id: '',
 }
@@ -226,6 +228,7 @@ export default function Admin() {
       setDeviceForm({
         unique_id: dialog.device.unique_id || '',
         name: dialog.device.name || '',
+        sim_number: dialog.device.sim_number || '',
         owner_id: dialog.device.user_id?.toString() || '',
         geofence_id: dialog.device.geofence_id?.toString() || '',
       })
@@ -470,6 +473,7 @@ export default function Admin() {
       const payload: any = {
         unique_id: deviceForm.unique_id || undefined,
         name: deviceForm.name || undefined,
+        sim_number: deviceForm.sim_number || undefined,
         owner_id: deviceForm.owner_id === '' ? null : Number(deviceForm.owner_id),
         geofence_id: deviceForm.geofence_id === '' ? null : intOrNull(deviceForm.geofence_id),
       }
@@ -543,6 +547,7 @@ export default function Admin() {
           fisher_password: registerForm.password,
           unique_id: registerForm.unique_id || undefined,
           name: registerForm.device_name || undefined,
+          sim_number: registerForm.sim_number || undefined,
           medical_record: registerForm.medical_record || undefined,
           geofence_id: registerForm.geofence_id ? Number(registerForm.geofence_id) : undefined,
         }
@@ -1147,6 +1152,10 @@ export default function Admin() {
                     <Input value={deviceForm.unique_id} onChange={(e) => setDeviceForm({ ...deviceForm, unique_id: e.target.value })} className="bg-slate-900 text-white" />
                   </div>
                 </div>
+                <div>
+                  <Label className="text-sm text-slate-200">SIM number</Label>
+                  <Input value={deviceForm.sim_number} onChange={(e) => setDeviceForm({ ...deviceForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
                     <Label className="text-sm text-slate-200">Owner (fisherfolk)</Label>
@@ -1315,6 +1324,10 @@ export default function Admin() {
                   <div>
                     <Label className="text-sm text-slate-200">Unique ID</Label>
                     <Input value={registerForm.unique_id} onChange={(e) => setRegisterForm({ ...registerForm, unique_id: e.target.value })} className="bg-slate-900 text-white" />
+                  </div>
+                  <div>
+                    <Label className="text-sm text-slate-200">SIM number</Label>
+                    <Input value={registerForm.sim_number} onChange={(e) => setRegisterForm({ ...registerForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
                   </div>
                   <div>
                     <Label className="text-sm text-slate-200">SSEN</Label>

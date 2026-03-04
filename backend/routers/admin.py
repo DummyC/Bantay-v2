@@ -40,6 +40,7 @@ class RegisterDeviceIn(BaseModel):
     traccar_device_id: Optional[int] = None
     unique_id: Optional[str]
     name: Optional[str]
+    sim_number: Optional[str] = None
     fisher_name: str
     fisher_email: EmailStr
     fisher_password: str
@@ -310,6 +311,7 @@ def register(data: RegisterDeviceIn, db: Session = Depends(get_db), current_user
         traccar_device_id=None,
         unique_id=data.unique_id,
         name=data.name,
+        sim_number=data.sim_number,
         user_id=fisher.id,
         geofence_id=data.geofence_id,
     )
@@ -344,6 +346,7 @@ def register(data: RegisterDeviceIn, db: Session = Depends(get_db), current_user
             "id": device.id,
             "traccar_device_id": device.traccar_device_id,
             "unique_id": device.unique_id,
+            "sim_number": device.sim_number,
             "user_id": device.user_id,
             "geofence_id": device.geofence_id,
         },
@@ -571,6 +574,7 @@ class DeviceCreateIn(BaseModel):
     traccar_device_id: Optional[int] = None
     unique_id: Optional[str] = None
     name: Optional[str] = None
+    sim_number: Optional[str] = None
     owner_id: Optional[int] = None
     geofence_id: Optional[int] = None
 
@@ -579,6 +583,7 @@ class DeviceUpdateIn(BaseModel):
     traccar_device_id: Optional[int] = None
     unique_id: Optional[str] = None
     name: Optional[str] = None
+    sim_number: Optional[str] = None
     owner_id: Optional[int] = None
     geofence_id: Optional[int] = None
 
@@ -623,6 +628,7 @@ def create_device(data: DeviceCreateIn, db: Session = Depends(get_db), current_u
         traccar_device_id=None,
         unique_id=data.unique_id,
         name=data.name,
+        sim_number=data.sim_number,
         user_id=data.owner_id,
         geofence_id=data.geofence_id,
     )
@@ -643,6 +649,7 @@ def create_device(data: DeviceCreateIn, db: Session = Depends(get_db), current_u
             "id": device.id,
             "traccar_device_id": device.traccar_device_id,
             "unique_id": device.unique_id,
+            "sim_number": device.sim_number,
             "user_id": device.user_id,
             "geofence_id": device.geofence_id,
         },
@@ -663,6 +670,8 @@ def update_device(device_id: int, data: DeviceUpdateIn, db: Session = Depends(ge
     if data.name is not None:
         device.name = data.name
     field_set = getattr(data, "model_fields_set", None) or getattr(data, "__fields_set__", set())
+    if "sim_number" in field_set:
+        device.sim_number = data.sim_number
     if "owner_id" in field_set:
         # keep backward-compatible input field name 'owner_id' but store to 'user_id'
         device.user_id = data.owner_id
@@ -694,6 +703,7 @@ def update_device(device_id: int, data: DeviceUpdateIn, db: Session = Depends(ge
             "id": device.id,
             "traccar_device_id": device.traccar_device_id,
             "unique_id": device.unique_id,
+            "sim_number": device.sim_number,
             "user_id": device.user_id,
             "geofence_id": device.geofence_id,
         },
