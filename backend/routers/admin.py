@@ -90,26 +90,26 @@ def _sync_device_geofence(traccar_device_id: Optional[int], new_geofence_id: Opt
     headers = {"Authorization": f"Bearer {settings.TRACCAR_API_TOKEN}"}
     base = settings.TRACCAR_API_URL.rstrip("/")
 
-    # remove old assignment if changed
-    if old_traccar_id and old_traccar_id != new_traccar_id:
-        try:
+    try:
+        # remove old assignment if changed
+        if old_traccar_id and old_traccar_id != new_traccar_id:
             requests.delete(
                 f"{base}/api/permissions",
                 params={"deviceId": traccar_device_id, "geofenceId": old_traccar_id},
                 headers=headers,
                 timeout=10,
-            )
-        except Exception:
-            pass
+            ).raise_for_status()
 
-    # add new assignment
-    if new_traccar_id:
-        requests.post(
-            f"{base}/api/permissions",
-            json={"deviceId": traccar_device_id, "geofenceId": new_traccar_id},
-            headers=headers,
-            timeout=10,
-        )
+        # add new assignment
+        if new_traccar_id:
+            requests.post(
+                f"{base}/api/permissions",
+                json={"deviceId": traccar_device_id, "geofenceId": new_traccar_id},
+                headers=headers,
+                timeout=10,
+            ).raise_for_status()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to sync geofence with Traccar: {e}")
 
 
 def _sync_traccar_device(device: Device, db: Session, previous_unique_id: Optional[str] = None):
@@ -130,7 +130,6 @@ def _sync_traccar_device(device: Device, db: Session, previous_unique_id: Option
         "name": device.name or device.unique_id,
         "uniqueId": device.unique_id,
     }
-
     try:
         if device.traccar_device_id:
             requests.put(
@@ -151,9 +150,8 @@ def _sync_traccar_device(device: Device, db: Session, previous_unique_id: Option
             if isinstance(data, dict) and data.get("id"):
                 device.traccar_device_id = data.get("id")
                 db.flush()
-    except Exception:
-        # Don't fail the main transaction because of Traccar sync issues
-        pass
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Failed to sync device with Traccar: {e}")
 
 
 def _geojson_polygon_to_wkt(payload: dict) -> Optional[str]:
@@ -322,20 +320,18 @@ def register(data: RegisterDeviceIn, db: Session = Depends(get_db), current_user
     if data.unique_id is None and _traccar_enabled():
         db.rollback()
         raise HTTPException(status_code=400, detail="unique_id is required to register device with Traccar")
-    _sync_traccar_device(device, db=db)
-
-    db.commit()
+    try:
+        _sync_traccar_device(device, db=db)
+        _sync_device_geofence(traccar_device_id=device.traccar_device_id, new_geofence_id=device.geofence_id, db=db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(device)
     db.refresh(fisher)
     # include fisherfolk settings/medical record in response when present
     ff = db.query(Fisherfolk).filter(Fisherfolk.user_id == fisher.id).first()
     med = ff.medical_record if ff else None
-
-    # if geofence provided, attempt to sync to Traccar
-    try:
-        _sync_device_geofence(traccar_device_id=device.traccar_device_id, new_geofence_id=device.geofence_id, db=db)
-    except Exception:
-        pass
 
     _log_action(db, "devices", device.id, "create", actor_user_id=current_user.id, details={"fisher_id": fisher.id})
     _log_action(db, "users", fisher.id, "create", actor_user_id=current_user.id, details={"role": "fisherfolk"})
@@ -635,8 +631,13 @@ def create_device(data: DeviceCreateIn, db: Session = Depends(get_db), current_u
     db.add(device)
     db.flush()
 
-    _sync_traccar_device(device, db=db)
-    db.commit()
+    try:
+        _sync_traccar_device(device, db=db)
+        _sync_device_geofence(traccar_device_id=device.traccar_device_id, new_geofence_id=device.geofence_id, db=db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     db.refresh(device)
     _log_action(db, "devices", device.id, "create", actor_user_id=current_user.id, details=data.model_dump(exclude_none=True))
     try:
@@ -681,21 +682,19 @@ def update_device(device_id: int, data: DeviceUpdateIn, db: Session = Depends(ge
             if not exists:
                 raise HTTPException(status_code=404, detail="Geofence not found")
         device.geofence_id = data.geofence_id
-    db.commit()
-    db.refresh(device)
     try:
         _sync_traccar_device(device, db=db, previous_unique_id=previous_unique_id)
-    except Exception:
-        pass
-    try:
         _sync_device_geofence(
             traccar_device_id=device.traccar_device_id,
             new_geofence_id=device.geofence_id,
             previous_geofence_id=previous_geofence_id,
             db=db,
         )
+        db.commit()
     except Exception:
-        pass
+        db.rollback()
+        raise
+    db.refresh(device)
     _log_action(db, "devices", device.id, "update", actor_user_id=current_user.id, details=data.model_dump(exclude_none=True))
     return {
         "ok": True,
@@ -718,6 +717,17 @@ def delete_device(device_id: int, delete_user: bool = False, db: Session = Depen
         raise HTTPException(status_code=404, detail="Device not found")
     owner_deleted = False
     try:
+        # remove from Traccar first when configured so we fail fast on connectivity issues
+        if device.traccar_device_id and _traccar_enabled():
+            if not settings.TRACCAR_API_URL or not settings.TRACCAR_API_TOKEN:
+                raise HTTPException(status_code=400, detail="Traccar API URL and token must be configured to manage devices")
+            resp = requests.delete(
+                f"{settings.TRACCAR_API_URL.rstrip('/')}/api/devices/{device.traccar_device_id}",
+                headers={"Authorization": f"Bearer {settings.TRACCAR_API_TOKEN}"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+
         owner = None
         if delete_user and device.user_id is not None:
             owner = db.query(User).filter(User.id == device.user_id).first()
@@ -728,7 +738,7 @@ def delete_device(device_id: int, delete_user: bool = False, db: Session = Depen
         db.commit()
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete device: {e}")
+        raise HTTPException(status_code=502, detail=f"Failed to delete device: {e}")
     _log_action(db, "devices", device_id, "delete", actor_user_id=current_user.id, details={"owner_deleted": owner_deleted})
     return {"ok": True, "owner_deleted": owner_deleted}
 
@@ -902,22 +912,18 @@ def delete_geofence(geofence_id: int, db: Session = Depends(get_db), _=Depends(r
         env_testing = os.environ.get("TESTING") in ("1", "true", "True")
         env_skip = os.environ.get("BANTAY_SKIP_TRACCAR") in ("1", "true", "True")
         if g.traccar_id and not (settings.TESTING or env_testing or env_skip):
-            try:
-                resp = requests.delete(
-                    f"{settings.TRACCAR_API_URL.rstrip('/')}/api/geofences/{g.traccar_id}",
-                    headers={"Authorization": f"Bearer {settings.TRACCAR_API_TOKEN}"},
-                    timeout=10,
-                )
-                resp.raise_for_status()
-            except Exception:
-                # don't fail deletion just because remote deletion failed; continue
-                pass
+            resp = requests.delete(
+                f"{settings.TRACCAR_API_URL.rstrip('/')}/api/geofences/{g.traccar_id}",
+                headers={"Authorization": f"Bearer {settings.TRACCAR_API_TOKEN}"},
+                timeout=10,
+            )
+            resp.raise_for_status()
 
         db.delete(g)
         db.commit()
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to delete geofence: {e}")
+        raise HTTPException(status_code=502, detail=f"Failed to delete geofence: {e}")
     return {"ok": True}
 
 
