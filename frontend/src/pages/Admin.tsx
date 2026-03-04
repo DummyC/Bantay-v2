@@ -945,7 +945,7 @@ export default function Admin() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                   <Badge className="bg-emerald-500/15 text-emerald-200">Owner: {ownerDisplay(d.user_id)}</Badge>
-                  {d.traccar_device_id && <Badge className="bg-slate-700 text-slate-200">Traccar {d.traccar_device_id}</Badge>}
+                  {d.traccar_device_id && <Badge className="bg-slate-700 text-slate-200 hidden">Traccar {d.traccar_device_id}</Badge>}
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: 'device', mode: 'detail', device: d })}>
                       <Eye className="h-4 w-4" />
@@ -978,7 +978,7 @@ export default function Admin() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge className="bg-slate-800 text-slate-200">ID {g.id}</Badge>
-                  {g.traccar_id && <Badge className="bg-emerald-500/15 text-emerald-200">Traccar {g.traccar_id}</Badge>}
+                  {g.traccar_id && <Badge className="bg-emerald-500/15 text-emerald-200 hidden">Traccar {g.traccar_id}</Badge>}
                   <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: 'geofence', mode: 'detail', geofence: g })}>
                     <Eye className="h-4 w-4" />
                   </Button>
@@ -1173,23 +1173,23 @@ export default function Admin() {
         <Dialog open onOpenChange={(v) => !v && setDialog(null)}>
           <DialogContent className="bg-slate-950 text-white">
             <DialogHeader>
-              <DialogTitle>{dialog.mode === 'create' ? 'Create device' : dialog.mode === 'edit' ? 'Edit device' : 'Device details'}</DialogTitle>
+              <DialogTitle>{dialog.mode === 'create' ? 'Create Device' : dialog.mode === 'edit' ? 'Edit Device' : 'Device Details'}</DialogTitle>
             </DialogHeader>
             {!isDetail && (
               <div className="space-y-3">
+                <div>
+                  <Label className="text-sm text-slate-200">SSEN</Label>
+                  <Input value={deviceForm.name} onChange={(e) => setDeviceForm({ ...deviceForm, name: e.target.value })} className="bg-slate-900 text-white" />
+                </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <div>
-                    <Label className="text-sm text-slate-200">SSEN</Label>
-                    <Input value={deviceForm.name} onChange={(e) => setDeviceForm({ ...deviceForm, name: e.target.value })} className="bg-slate-900 text-white" />
-                  </div>
                   <div>
                     <Label className="text-sm text-slate-200">IMEI</Label>
                     <Input value={deviceForm.unique_id} onChange={(e) => setDeviceForm({ ...deviceForm, unique_id: e.target.value })} className="bg-slate-900 text-white" />
                   </div>
-                </div>
-                <div>
-                  <Label className="text-sm text-slate-200">SIM Number</Label>
-                  <Input value={deviceForm.sim_number} onChange={(e) => setDeviceForm({ ...deviceForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
+                  <div>
+                    <Label className="text-sm text-slate-200">SIM Number</Label>
+                    <Input value={deviceForm.sim_number} onChange={(e) => setDeviceForm({ ...deviceForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
+                  </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
@@ -1250,7 +1250,7 @@ export default function Admin() {
         <Dialog open onOpenChange={(v) => !v && setDialog(null)}>
           <DialogContent className="bg-slate-950 text-white">
             <DialogHeader>
-              <DialogTitle>{dialog.mode === 'create' ? 'Create geofence' : dialog.mode === 'edit' ? 'Edit geofence' : 'Geofence details'}</DialogTitle>
+              <DialogTitle>{dialog.mode === 'create' ? 'Create Geofence' : dialog.mode === 'edit' ? 'Edit Geofence' : 'Geofence Details'}</DialogTitle>
             </DialogHeader>
             {!isDetail && (
               <div className="space-y-3">
@@ -1300,7 +1300,7 @@ export default function Admin() {
         <Dialog open onOpenChange={(v) => !v && setDialog(null)}>
           <DialogContent className="bg-slate-950 text-white">
             <DialogHeader>
-              <DialogTitle>Upload geofence</DialogTitle>
+              <DialogTitle>Upload Geofence</DialogTitle>
               <DialogDescription className="text-slate-400">Upload a GeoJSON polygon or WKT POLYGON file.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
@@ -1366,10 +1366,11 @@ export default function Admin() {
               )}
               {isFisher && (
                 <div className="space-y-3 rounded-md border border-white/10 bg-slate-900/60 p-3">
-                  <p className="text-sm font-semibold text-white">Device details</p>
+                  <p className="text-sm font-semibold text-white">Device Details</p>
                   <div>
-                    <Label className="text-sm text-slate-200">Link existing unassigned device</Label>
+                    <Label htmlFor="existing-device-select" className="text-sm text-slate-200">Link existing unassigned device</Label>
                     <select
+                      id="existing-device-select"
                       value={registerForm.existing_device_id}
                       onChange={(e) => {
                         const value = e.target.value
@@ -1394,24 +1395,36 @@ export default function Admin() {
                   {!linkingExistingDevice && (
                     <>
                       <div>
-                        <Label className="text-sm text-slate-200">IMEI</Label>
+                        <Label htmlFor="register-ssen" className="text-sm text-slate-200">SSEN</Label>
                         <Input
+                          id="register-ssen"
+                          value={registerForm.device_name}
+                          onChange={(e) => setRegisterForm({ ...registerForm, device_name: e.target.value })}
+                          className="bg-slate-900 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="register-imei" className="text-sm text-slate-200">IMEI</Label>
+                        <Input
+                          id="register-imei"
                           value={registerForm.unique_id}
                           onChange={(e) => setRegisterForm({ ...registerForm, unique_id: e.target.value })}
                           className="bg-slate-900 text-white"
                         />
                       </div>
                       <div>
-                        <Label className="text-sm text-slate-200">SIM Number</Label>
-                        <Input value={registerForm.sim_number} onChange={(e) => setRegisterForm({ ...registerForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
+                        <Label htmlFor="register-sim" className="text-sm text-slate-200">SIM Number</Label>
+                        <Input
+                          id="register-sim"
+                          value={registerForm.sim_number}
+                          onChange={(e) => setRegisterForm({ ...registerForm, sim_number: e.target.value })}
+                          className="bg-slate-900 text-white"
+                        />
                       </div>
                       <div>
-                        <Label className="text-sm text-slate-200">SSEN</Label>
-                        <Input value={registerForm.device_name} onChange={(e) => setRegisterForm({ ...registerForm, device_name: e.target.value })} className="bg-slate-900 text-white" />
-                      </div>
-                      <div>
-                        <Label className="text-sm text-slate-200">Geofence</Label>
+                        <Label htmlFor="register-geofence" className="text-sm text-slate-200">Geofence</Label>
                         <select
+                          id="register-geofence"
                           value={registerForm.geofence_id}
                           onChange={(e) => setRegisterForm({ ...registerForm, geofence_id: e.target.value })}
                           className="h-10 w-full rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"
@@ -1444,7 +1457,7 @@ export default function Admin() {
         <Dialog open onOpenChange={(v) => !v && setDialog(null)}>
           <DialogContent className="bg-slate-950 text-white">
             <DialogHeader>
-              <DialogTitle>Confirm delete</DialogTitle>
+              <DialogTitle>Confirm Delete</DialogTitle>
               <DialogDescription className="text-slate-400">This action cannot be undone.</DialogDescription>
             </DialogHeader>
             {cascadeLabel && (
