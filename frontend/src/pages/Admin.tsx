@@ -128,6 +128,7 @@ const defaultRegisterForm = {
   sim_number: '',
   medical_record: '',
   geofence_id: '',
+  existing_device_id: '',
 }
 
 function formatGMT8(ts?: string | null, fallback = 'N/A') {
@@ -541,17 +542,50 @@ export default function Admin() {
     setBusy(true)
     try {
       if (dialog.role === 'fisher') {
-        const payload = {
-          fisher_name: registerForm.name,
-          fisher_email: registerForm.email,
-          fisher_password: registerForm.password,
-          unique_id: registerForm.unique_id || undefined,
-          name: registerForm.device_name || undefined,
-          sim_number: registerForm.sim_number || undefined,
-          medical_record: registerForm.medical_record || undefined,
-          geofence_id: registerForm.geofence_id ? Number(registerForm.geofence_id) : undefined,
+        const existingDeviceId = registerForm.existing_device_id ? Number(registerForm.existing_device_id) : null
+
+        if (existingDeviceId) {
+          const userRes = await apiFetch('/api/admin/users', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: registerForm.name,
+              email: registerForm.email,
+              password: registerForm.password,
+              role: 'fisherfolk',
+              medical_record: registerForm.medical_record || undefined,
+            }),
+          })
+          const user = await userRes.json()
+
+          try {
+            const devicePayload: any = {
+              owner_id: user.id,
+              geofence_id: registerForm.geofence_id ? Number(registerForm.geofence_id) : undefined,
+            }
+            if (registerForm.device_name) devicePayload.name = registerForm.device_name
+            if (registerForm.sim_number) devicePayload.sim_number = registerForm.sim_number
+            await apiFetch(`/api/admin/devices/${existingDeviceId}`, { method: 'PUT', body: JSON.stringify(devicePayload) })
+          } catch (err) {
+            try {
+              await apiFetch(`/api/admin/users/${user.id}`, { method: 'DELETE' })
+            } catch (_cleanupErr) {
+              // best-effort cleanup; ignore failures
+            }
+            throw err
+          }
+        } else {
+          const payload = {
+            fisher_name: registerForm.name,
+            fisher_email: registerForm.email,
+            fisher_password: registerForm.password,
+            unique_id: registerForm.unique_id || undefined,
+            name: registerForm.device_name || undefined,
+            sim_number: registerForm.sim_number || undefined,
+            medical_record: registerForm.medical_record || undefined,
+            geofence_id: registerForm.geofence_id ? Number(registerForm.geofence_id) : undefined,
+          }
+          await apiFetch('/api/admin/register', { method: 'POST', body: JSON.stringify(payload) })
         }
-        await apiFetch('/api/admin/register', { method: 'POST', body: JSON.stringify(payload) })
       } else if (dialog.role === 'coast_guard') {
         const payload = { name: registerForm.name, email: registerForm.email, password: registerForm.password }
         await apiFetch('/api/admin/register_coastguard', { method: 'POST', body: JSON.stringify(payload) })
@@ -809,6 +843,7 @@ export default function Admin() {
 
   const fisherfolkUsers = useMemo(() => users.filter((u) => u.role === 'fisherfolk'), [users])
   const geofenceOptions = useMemo(() => geofences.map((g) => ({ id: g.id, name: g.name })), [geofences])
+  const unassignedDevices = useMemo(() => devices.filter((d) => !d.user_id), [devices])
   const geofenceNameById = (id?: number | null) => geofences.find((g) => g.id === id)?.name || 'None'
   const ownerDisplay = (ownerId?: number | null) => {
     const owner = users.find((u) => u.id === ownerId)
@@ -1148,12 +1183,12 @@ export default function Admin() {
                     <Input value={deviceForm.name} onChange={(e) => setDeviceForm({ ...deviceForm, name: e.target.value })} className="bg-slate-900 text-white" />
                   </div>
                   <div>
-                    <Label className="text-sm text-slate-200">Unique ID</Label>
+                    <Label className="text-sm text-slate-200">IMEI</Label>
                     <Input value={deviceForm.unique_id} onChange={(e) => setDeviceForm({ ...deviceForm, unique_id: e.target.value })} className="bg-slate-900 text-white" />
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm text-slate-200">SIM number</Label>
+                  <Label className="text-sm text-slate-200">SIM Number</Label>
                   <Input value={deviceForm.sim_number} onChange={(e) => setDeviceForm({ ...deviceForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -1171,7 +1206,7 @@ export default function Admin() {
                     </select>
                   </div>
                   <div>
-                    <Label className="text-sm text-slate-200">Geofence (optional)</Label>
+                    <Label className="text-sm text-slate-200">Geofence</Label>
                     <select
                       value={deviceForm.geofence_id}
                       onChange={(e) => setDeviceForm({ ...deviceForm, geofence_id: e.target.value })}
@@ -1190,7 +1225,7 @@ export default function Admin() {
             {isDetail && dialog.device && (
               <div className="space-y-2 text-sm text-slate-200">
                 <p><span className="text-slate-400">SSEN:</span> {dialog.device.name}</p>
-                <p><span className="text-slate-400">Unique ID:</span> {dialog.device.unique_id || '—'}</p>
+                <p><span className="text-slate-400">IMEI:</span> {dialog.device.unique_id || '—'}</p>
                 <p><span className="text-slate-400">Owner:</span> {ownerDisplay(dialog.device.user_id)}</p>
                 <p><span className="text-slate-400">Geofence:</span> {geofenceNameById(dialog.device.geofence_id)}</p>
               </div>
@@ -1295,6 +1330,7 @@ export default function Admin() {
 
     if (dialog.kind === 'register') {
       const isFisher = dialog.role === 'fisher'
+      const linkingExistingDevice = Boolean(registerForm.existing_device_id)
       return (
         <Dialog open onOpenChange={(v) => !v && setDialog(null)}>
           <DialogContent className="bg-slate-950 text-white">
@@ -1319,41 +1355,75 @@ export default function Admin() {
                 <Input type="password" value={registerForm.password} onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })} className="bg-slate-900 text-white" />
               </div>
               {isFisher && (
+                <div>
+                  <Label className="text-sm text-slate-200">Medical record (optional)</Label>
+                  <textarea
+                    value={registerForm.medical_record}
+                    onChange={(e) => setRegisterForm({ ...registerForm, medical_record: e.target.value })}
+                    className="h-20 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
+                  />
+                </div>
+              )}
+              {isFisher && (
                 <div className="space-y-3 rounded-md border border-white/10 bg-slate-900/60 p-3">
                   <p className="text-sm font-semibold text-white">Device details</p>
                   <div>
-                    <Label className="text-sm text-slate-200">Unique ID</Label>
-                    <Input value={registerForm.unique_id} onChange={(e) => setRegisterForm({ ...registerForm, unique_id: e.target.value })} className="bg-slate-900 text-white" />
-                  </div>
-                  <div>
-                    <Label className="text-sm text-slate-200">SIM number</Label>
-                    <Input value={registerForm.sim_number} onChange={(e) => setRegisterForm({ ...registerForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
-                  </div>
-                  <div>
-                    <Label className="text-sm text-slate-200">SSEN</Label>
-                    <Input value={registerForm.device_name} onChange={(e) => setRegisterForm({ ...registerForm, device_name: e.target.value })} className="bg-slate-900 text-white" />
-                  </div>
-                  <div>
-                    <Label className="text-sm text-slate-200">Geofence (optional)</Label>
+                    <Label className="text-sm text-slate-200">Link existing unassigned device</Label>
                     <select
-                      value={registerForm.geofence_id}
-                      onChange={(e) => setRegisterForm({ ...registerForm, geofence_id: e.target.value })}
+                      value={registerForm.existing_device_id}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setRegisterForm({
+                          ...registerForm,
+                          existing_device_id: value,
+                          unique_id: value ? '' : registerForm.unique_id,
+                          device_name: value ? '' : registerForm.device_name,
+                          sim_number: value ? '' : registerForm.sim_number,
+                          geofence_id: value ? '' : registerForm.geofence_id,
+                        })
+                      }}
                       className="h-10 w-full rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"
                     >
-                      <option value="">None</option>
-                      {geofenceOptions.map((g) => (
-                        <option key={g.id} value={g.id}>{g.name}</option>
+                      <option value="">Create new device</option>
+                      {unassignedDevices.map((d) => (
+                        <option key={d.id} value={d.id}>{`${d.name || 'Unnamed'} • ${d.unique_id || 'no UID'}`}</option>
                       ))}
                     </select>
+                    <p className="mt-1 text-xs text-slate-400">Pick an unassigned device to link, or leave blank to create a new device.</p>
                   </div>
-                  <div>
-                    <Label className="text-sm text-slate-200">Medical record (optional)</Label>
-                    <textarea
-                      value={registerForm.medical_record}
-                      onChange={(e) => setRegisterForm({ ...registerForm, medical_record: e.target.value })}
-                      className="h-20 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
-                    />
-                  </div>
+                  {!linkingExistingDevice && (
+                    <>
+                      <div>
+                        <Label className="text-sm text-slate-200">IMEI</Label>
+                        <Input
+                          value={registerForm.unique_id}
+                          onChange={(e) => setRegisterForm({ ...registerForm, unique_id: e.target.value })}
+                          className="bg-slate-900 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-slate-200">SIM Number</Label>
+                        <Input value={registerForm.sim_number} onChange={(e) => setRegisterForm({ ...registerForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-slate-200">SSEN</Label>
+                        <Input value={registerForm.device_name} onChange={(e) => setRegisterForm({ ...registerForm, device_name: e.target.value })} className="bg-slate-900 text-white" />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-slate-200">Geofence</Label>
+                        <select
+                          value={registerForm.geofence_id}
+                          onChange={(e) => setRegisterForm({ ...registerForm, geofence_id: e.target.value })}
+                          className="h-10 w-full rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"
+                        >
+                          <option value="">None</option>
+                          {geofenceOptions.map((g) => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
