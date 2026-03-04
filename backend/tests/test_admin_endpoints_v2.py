@@ -2,6 +2,8 @@ import pytest
 
 from core.security import hash_password
 from db.session import SessionLocal
+from models.device import Device
+from models.fisherfolk import Fisherfolk
 from models.user import User
 
 
@@ -54,3 +56,47 @@ def test_admin_user_listing_includes_new_users(client, admin_user):
     emails = {u["email"] for u in users}
     assert "admin@example.com" in emails
     assert "fisher@example.com" in emails
+
+
+def test_admin_can_assign_existing_device_to_new_fisher(client, admin_user, db_session, monkeypatch):
+    monkeypatch.setenv("BANTAY_SKIP_TRACCAR", "1")
+    monkeypatch.setenv("TESTING", "1")
+    headers = _auth_header(client)
+
+    device = Device(unique_id="DEV-ASSIGN", name="Unassigned Device", user_id=None, traccar_device_id=None)
+    db_session.add(device)
+    db_session.commit()
+    db_session.refresh(device)
+
+    user_payload = {
+        "name": "Linked Fisher",
+        "email": "linked_fisher@example.com",
+        "password": "fishpass123",
+        "role": "fisherfolk",
+        "medical_record": "Allergic to shellfish",
+    }
+    user_resp = client.post("/api/admin/users", json=user_payload, headers=headers)
+    assert user_resp.status_code == 200
+    new_user_id = user_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/admin/devices/{device.id}",
+        json={"owner_id": new_user_id, "geofence_id": None},
+        headers=headers,
+    )
+    assert update_resp.status_code == 200
+    body = update_resp.json()["device"]
+    assert body["user_id"] == new_user_id
+
+    db_session.refresh(device)
+    assert device.user_id == new_user_id
+
+    fisher_profile = db_session.query(Fisherfolk).filter(Fisherfolk.user_id == new_user_id).first()
+    assert fisher_profile is not None
+    assert fisher_profile.medical_record == user_payload["medical_record"]
+
+    if fisher_profile:
+        db_session.delete(fisher_profile)
+    db_session.delete(device)
+    db_session.query(User).filter(User.id == new_user_id).delete()
+    db_session.commit()
