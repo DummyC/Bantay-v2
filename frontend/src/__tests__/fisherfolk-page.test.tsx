@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Fisherfolk from '../pages/Fisherfolk'
 
@@ -66,5 +66,35 @@ describe('Fisherfolk page', () => {
     await waitFor(() => expect(screen.getByTestId('map')).toBeInTheDocument())
     expect(screen.getByText(/Tracker 1/i)).toBeInTheDocument()
     expect(screen.getByText(/Fisherfolk/i)).toBeInTheDocument()
+  })
+
+  it('shows validation errors when history range is incomplete or invalid', async () => {
+    render(
+      <MemoryRouter initialEntries={['/fisherfolk']}>
+        <Fisherfolk />
+      </MemoryRouter>
+    )
+
+    const closePrivacyBtn = await screen.findByRole('button', { name: /Close/i })
+    fireEvent.click(closePrivacyBtn)
+
+    await waitFor(() => expect(screen.getByText(/Tracker 1/i)).toBeInTheDocument())
+
+    fireEvent.click(screen.getByText(/Tracker 1/i))
+
+    const fromInput = screen.getByLabelText(/From/i)
+    const toInput = screen.getByLabelText(/To/i)
+
+    fireEvent.change(fromInput, { target: { value: '2024-01-01T00:00' } })
+    fireEvent.change(toInput, { target: { value: '' } })
+
+    const loadHistoryButton = screen.getByRole('button', { name: /Load history/i })
+    expect(loadHistoryButton).toBeDisabled()
+
+    fireEvent.change(fromInput, { target: { value: '2024-01-02T00:00' } })
+    fireEvent.change(toInput, { target: { value: '2024-01-01T00:00' } })
+    expect(loadHistoryButton).not.toBeDisabled()
+    fireEvent.click(loadHistoryButton)
+    await waitFor(() => expect(screen.getByText(/Start time must be before end time/i)).toBeInTheDocument())
   })
 })

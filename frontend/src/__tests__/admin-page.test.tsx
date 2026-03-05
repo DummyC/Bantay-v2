@@ -77,4 +77,34 @@ describe('Admin page', () => {
     expect(screen.getByLabelText(/SIM Number/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/SSEN/i)).toBeInTheDocument()
   })
+
+  it('blocks submit when SIM is not 11 digits starting with 09', async () => {
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <Admin />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(screen.getByRole('button', { name: /Users/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /Users/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Register Fisher/i })).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /Register Fisher/i }))
+
+    const [nameInput, emailInput] = screen.getAllByRole('textbox')
+    fireEvent.change(nameInput, { target: { value: 'Tester' } })
+    fireEvent.change(emailInput, { target: { value: 'tester@example.com' } })
+    const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement
+    fireEvent.change(passwordInput, { target: { value: 'abcdefgh' } })
+    fireEvent.change(screen.getByLabelText(/SIM Number/i), { target: { value: '08123' } })
+
+    const callsBefore = (global.fetch as any).mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: /Submit/i }))
+
+    await waitFor(() => {
+      const errors = screen.getAllByText(/SIM number must start with 09 and be 11 digits/i)
+      expect(errors.length).toBeGreaterThan(0)
+    })
+    expect((global.fetch as any).mock.calls.length).toBe(callsBefore)
+  })
 })

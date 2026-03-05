@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import CoastGuard from '../pages/CoastGuard'
 
@@ -64,5 +64,31 @@ describe('CoastGuard page', () => {
     await waitFor(() => expect(screen.getByTestId('map')).toBeInTheDocument())
     expect(screen.getByText(/Coast Guard/i)).toBeInTheDocument()
     expect(screen.getByText(/Logout/i)).toBeInTheDocument()
+  })
+
+  it('validates history inputs before fetching', async () => {
+    render(
+      <MemoryRouter initialEntries={['/coast-guard']}>
+        <CoastGuard />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => expect(screen.getByTestId('map')).toBeInTheDocument())
+    expect(screen.getByText(/Vessel A/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText(/Vessel A/i))
+    await waitFor(() => expect(screen.getByText(/Fisherfolk:/i)).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: /View history/i }))
+    await waitFor(() => expect(screen.getByText(/History mode/i)).toBeInTheDocument())
+
+    const dateInputs = document.querySelectorAll('input[type="datetime-local"]') as NodeListOf<HTMLInputElement>
+    expect(dateInputs.length).toBeGreaterThanOrEqual(2)
+    const [startInput, endInput] = dateInputs
+
+    fireEvent.change(startInput, { target: { value: '2024-02-02T00:00' } })
+    fireEvent.change(endInput, { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: /Refresh/i }))
+    await waitFor(() => expect(screen.getByText(/Please provide both start and end times/i)).toBeInTheDocument())
   })
 })
