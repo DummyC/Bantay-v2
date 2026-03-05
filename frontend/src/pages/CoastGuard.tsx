@@ -1186,7 +1186,7 @@ export default function CoastGuard() {
                     <p className="flex items-center gap-2 text-xs text-slate-400">
                       <Battery className="h-3.5 w-3.5" />
                       {typeof historySelectedPoint.battery_percent === 'number'
-                        ? `${Math.round(historySelectedPoint.battery_percent)}%`
+                        ? `Battery: ${Math.round(historySelectedPoint.battery_percent)}%`
                         : 'Battery: Unknown'}
                     </p>
                     <div className="flex justify-end">
