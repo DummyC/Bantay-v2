@@ -524,8 +524,9 @@ def delete_user(user_id: int, delete_devices: bool = False, db: Session = Depend
     try:
         if delete_devices:
             deleted_devices = db.query(Device).filter(Device.user_id == user.id).delete(synchronize_session=False)
-        # Remove dependent fisherfolk profile to avoid FK violations
-        db.query(Fisherfolk).filter(Fisherfolk.user_id == user.id).delete(synchronize_session=False)
+        else:
+            # retain devices but detach ownership to avoid FK issues
+            db.query(Device).filter(Device.user_id == user.id).update({Device.user_id: None}, synchronize_session=False)
         db.delete(user)
         db.commit()
     except Exception as e:

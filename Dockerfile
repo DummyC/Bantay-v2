@@ -15,7 +15,12 @@ RUN pip install --upgrade pip setuptools wheel \
   && pip install -r requirements.txt
 
 COPY backend/ ./
+# Alembic config and migrations
+WORKDIR /app
+COPY alembic.ini ./
+COPY alembic ./alembic
+WORKDIR /app/backend
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "alembic -c /app/alembic.ini upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"]

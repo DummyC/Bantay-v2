@@ -12,7 +12,7 @@ class Device(Base):
     traccar_device_id = Column(Integer, unique=True, index=True)
     unique_id = Column(String, unique=True, index=True)
     name = Column(String, nullable=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     sim_number = Column(String, nullable=True)
     # use_alter to avoid metadata ordering issues when geofence model isn't imported
     geofence_id = Column(Integer, ForeignKey("geofences.id", use_alter=True), nullable=True)
