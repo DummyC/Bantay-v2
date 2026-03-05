@@ -171,6 +171,22 @@ function formatRole(role?: string | null) {
     .join(' ')
 }
 
+function sanitizeDigits(value: string, maxLength: number) {
+  return value.replace(/\D+/g, '').slice(0, maxLength)
+}
+
+function isExactLengthDigits(value: string, len: number) {
+  return value.length === len && /^\d+$/.test(value)
+}
+
+function isValidSimNumber(value: string) {
+  return /^09\d{9}$/.test(value)
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 function intOrNull(value: string) {
   const num = Number(value)
   return Number.isNaN(num) ? null : num
@@ -439,18 +455,33 @@ export default function Admin() {
 
   const submitUser = async () => {
     if (!dialog || dialog.kind !== 'user') return
+    const name = userForm.name.trim()
+    const email = userForm.email.trim()
+    const password = userForm.password.trim()
+    if (!name) {
+      setError('Name is required.')
+      return
+    }
+    if (!email || !isValidEmail(email)) {
+      setError('A valid email is required.')
+      return
+    }
+    if (password && password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
     setBusy(true)
     try {
       const payload: any = {
-        name: userForm.name,
-        email: userForm.email,
+        name,
+        email,
         role: userForm.role,
       }
-      if (userForm.password) payload.password = userForm.password
+      if (password) payload.password = password
       if (userForm.medical_record) payload.medical_record = userForm.medical_record
 
       if (dialog.mode === 'create') {
-        await apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify({ ...payload, password: userForm.password || 'changeme123' }) })
+        await apiFetch('/api/admin/users', { method: 'POST', body: JSON.stringify({ ...payload, password: password || 'changeme123' }) })
       } else {
         await apiFetch(`/api/admin/users/${dialog.user?.id}`, { method: 'PUT', body: JSON.stringify(payload) })
       }
@@ -465,15 +496,20 @@ export default function Admin() {
 
   const submitResetPassword = async () => {
     if (!dialog || dialog.kind !== 'user' || dialog.mode !== 'reset' || !dialog.user) return
-    if (!userForm.password) {
+    const password = userForm.password.trim()
+    if (!password) {
       setError('Please provide a new password')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
       return
     }
     setBusy(true)
     try {
       await apiFetch(`/api/admin/users/${dialog.user.id}/reset_password`, {
         method: 'POST',
-        body: JSON.stringify({ new_password: userForm.password }),
+        body: JSON.stringify({ new_password: password }),
       })
       setDialog(null)
     } catch (err: any) {
@@ -485,6 +521,14 @@ export default function Admin() {
 
   const submitDevice = async () => {
     if (!dialog || dialog.kind !== 'device') return
+    if (deviceForm.unique_id && !isExactLengthDigits(deviceForm.unique_id, 15)) {
+      setError('IMEI must be exactly 15 digits.')
+      return
+    }
+    if (deviceForm.sim_number && !isValidSimNumber(deviceForm.sim_number)) {
+      setError('SIM number must start with 09 and be 11 digits.')
+      return
+    }
     setBusy(true)
     try {
       const payload: any = {
@@ -555,6 +599,29 @@ export default function Admin() {
 
   const submitRegister = async () => {
     if (!dialog || dialog.kind !== 'register') return
+    const name = registerForm.name.trim()
+    const email = registerForm.email.trim()
+    const password = registerForm.password.trim()
+    if (!name) {
+      setError('Name is required.')
+      return
+    }
+    if (!email || !isValidEmail(email)) {
+      setError('A valid email is required.')
+      return
+    }
+    if (!password || password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    if (registerForm.unique_id && !isExactLengthDigits(registerForm.unique_id, 15)) {
+      setError('IMEI must be exactly 15 digits.')
+      return
+    }
+    if (registerForm.sim_number && !isValidSimNumber(registerForm.sim_number)) {
+      setError('SIM number must start with 09 and be 11 digits.')
+      return
+    }
     setBusy(true)
     try {
       if (dialog.role === 'fisher') {
@@ -564,9 +631,9 @@ export default function Admin() {
           const userRes = await apiFetch('/api/admin/users', {
             method: 'POST',
             body: JSON.stringify({
-              name: registerForm.name,
-              email: registerForm.email,
-              password: registerForm.password,
+                name,
+                email,
+                password,
               role: 'fisherfolk',
               medical_record: registerForm.medical_record || undefined,
             }),
@@ -591,9 +658,9 @@ export default function Admin() {
           }
         } else {
           const payload = {
-            fisher_name: registerForm.name,
-            fisher_email: registerForm.email,
-            fisher_password: registerForm.password,
+            fisher_name: name,
+            fisher_email: email,
+            fisher_password: password,
             unique_id: registerForm.unique_id || undefined,
             name: registerForm.device_name || undefined,
             sim_number: registerForm.sim_number || undefined,
@@ -603,10 +670,10 @@ export default function Admin() {
           await apiFetch('/api/admin/register', { method: 'POST', body: JSON.stringify(payload) })
         }
       } else if (dialog.role === 'coast_guard') {
-        const payload = { name: registerForm.name, email: registerForm.email, password: registerForm.password }
+        const payload = { name, email, password }
         await apiFetch('/api/admin/register_coastguard', { method: 'POST', body: JSON.stringify(payload) })
       } else {
-        const payload = { name: registerForm.name, email: registerForm.email, password: registerForm.password }
+        const payload = { name, email, password }
         await apiFetch('/api/admin/register_admin', { method: 'POST', body: JSON.stringify(payload) })
       }
       await loadData()
@@ -1103,6 +1170,12 @@ export default function Admin() {
   const renderDialog = () => {
     if (!dialog) return null
 
+    const dialogErrorNotice = error ? (
+      <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-100">
+        {error}
+      </div>
+    ) : null
+
     if (dialog.kind === 'user') {
       const isDetail = dialog.mode === 'detail'
       const isReset = dialog.mode === 'reset'
@@ -1116,6 +1189,7 @@ export default function Admin() {
                 {dialog.mode === 'reset' && 'Set a new password for this user'}
               </DialogDescription>
             </DialogHeader>
+            {dialogErrorNotice}
             {!isDetail && !isReset && (
               <div className="space-y-3">
                 <div>
@@ -1124,7 +1198,12 @@ export default function Admin() {
                 </div>
                 <div>
                   <Label className="text-sm text-slate-200">Email</Label>
-                  <Input value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} className="bg-slate-900 text-white" />
+                  <Input
+                    type="email"
+                    value={userForm.email}
+                    onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                    className="bg-slate-900 text-white"
+                  />
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
@@ -1216,6 +1295,7 @@ export default function Admin() {
             <DialogHeader>
               <DialogTitle>{dialog.mode === 'create' ? 'Create Device' : dialog.mode === 'edit' ? 'Edit Device' : 'Device Details'}</DialogTitle>
             </DialogHeader>
+            {dialogErrorNotice}
             {!isDetail && (
               <div className="space-y-3">
                 <div>
@@ -1225,11 +1305,24 @@ export default function Admin() {
                 <div className="grid gap-3 md:grid-cols-2">
                   <div>
                     <Label className="text-sm text-slate-200">IMEI</Label>
-                    <Input value={deviceForm.unique_id} onChange={(e) => setDeviceForm({ ...deviceForm, unique_id: e.target.value })} className="bg-slate-900 text-white" />
+                    <Input
+                      value={deviceForm.unique_id}
+                      onChange={(e) => setDeviceForm({ ...deviceForm, unique_id: sanitizeDigits(e.target.value, 15) })}
+                      className="bg-slate-900 text-white"
+                      inputMode="numeric"
+                      pattern="\d{15}"
+                    />
                   </div>
                   <div>
                     <Label className="text-sm text-slate-200">SIM Number</Label>
-                    <Input value={deviceForm.sim_number} onChange={(e) => setDeviceForm({ ...deviceForm, sim_number: e.target.value })} className="bg-slate-900 text-white" />
+                    <Input
+                      value={deviceForm.sim_number}
+                      onChange={(e) => setDeviceForm({ ...deviceForm, sim_number: sanitizeDigits(e.target.value, 11) })}
+                      className="bg-slate-900 text-white"
+                      inputMode="numeric"
+                      pattern="09\d{9}"
+                      title="Enter 11 digits starting with 09"
+                    />
                   </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -1307,6 +1400,7 @@ export default function Admin() {
             <DialogHeader>
               <DialogTitle>{dialog.mode === 'create' ? 'Create Geofence' : dialog.mode === 'edit' ? 'Edit Geofence' : 'Geofence Details'}</DialogTitle>
             </DialogHeader>
+            {dialogErrorNotice}
             {!isDetail && (
               <div className="space-y-3">
                 <div>
@@ -1372,6 +1466,7 @@ export default function Admin() {
               <DialogTitle>Upload Geofence</DialogTitle>
               <DialogDescription className="text-slate-400">Upload a GeoJSON polygon or WKT POLYGON file.</DialogDescription>
             </DialogHeader>
+            {dialogErrorNotice}
             <div className="space-y-3">
               <div>
                 <Label className="text-sm text-slate-200">Name (optional)</Label>
@@ -1408,6 +1503,7 @@ export default function Admin() {
               <DialogTitle>Report Details</DialogTitle>
               <DialogDescription className="text-slate-400">Review the full context of this report.</DialogDescription>
             </DialogHeader>
+            {dialogErrorNotice}
             <div className="space-y-4 text-sm text-slate-200">
               <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
                 <Badge className="bg-cyan-500/20 text-cyan-100">Event #{r.event_id}</Badge>
@@ -1489,6 +1585,7 @@ export default function Admin() {
                 {dialog.role === 'fisher' ? 'Register Fisher with Device' : dialog.role === 'coast_guard' ? 'Register Coast Guard' : 'Register Admin'}
               </DialogTitle>
             </DialogHeader>
+            {dialogErrorNotice}
             <div className="space-y-3">
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
@@ -1497,7 +1594,12 @@ export default function Admin() {
                 </div>
                 <div>
                   <Label className="text-sm text-slate-200">Email</Label>
-                  <Input value={registerForm.email} onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })} className="bg-slate-900 text-white" />
+                  <Input
+                    type="email"
+                    value={registerForm.email}
+                    onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
+                    className="bg-slate-900 text-white"
+                  />
                 </div>
               </div>
               <div>
@@ -1558,8 +1660,10 @@ export default function Admin() {
                         <Input
                           id="register-imei"
                           value={registerForm.unique_id}
-                          onChange={(e) => setRegisterForm({ ...registerForm, unique_id: e.target.value })}
+                          onChange={(e) => setRegisterForm({ ...registerForm, unique_id: sanitizeDigits(e.target.value, 15) })}
                           className="bg-slate-900 text-white"
+                          inputMode="numeric"
+                          pattern="\d{15}"
                         />
                       </div>
                       <div>
@@ -1567,8 +1671,11 @@ export default function Admin() {
                         <Input
                           id="register-sim"
                           value={registerForm.sim_number}
-                          onChange={(e) => setRegisterForm({ ...registerForm, sim_number: e.target.value })}
+                          onChange={(e) => setRegisterForm({ ...registerForm, sim_number: sanitizeDigits(e.target.value, 11) })}
                           className="bg-slate-900 text-white"
+                          inputMode="numeric"
+                          pattern="09\d{9}"
+                          title="Enter 11 digits starting with 09"
                         />
                       </div>
                       <div>
@@ -1610,6 +1717,7 @@ export default function Admin() {
               <DialogTitle>Confirm Delete</DialogTitle>
               <DialogDescription className="text-slate-400">This action cannot be undone.</DialogDescription>
             </DialogHeader>
+            {dialogErrorNotice}
             {cascadeLabel && (
               <label className="flex items-center gap-2 text-sm text-slate-200">
                 <input type="checkbox" checked={deleteCascade} onChange={(e) => setDeleteCascade(e.target.checked)} />

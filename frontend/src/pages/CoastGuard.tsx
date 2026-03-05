@@ -433,6 +433,25 @@ export default function CoastGuard() {
     setHistorySelectedPoint(null)
     const startVal = startOverride || historyStart
     const endVal = endOverride || historyEnd
+    if (startVal || endVal) {
+      if (!startVal || !endVal) {
+        setHistoryError('Please provide both start and end times.')
+        setHistoryLoading(false)
+        return
+      }
+      const startDate = new Date(startVal)
+      const endDate = new Date(endVal)
+      if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        setHistoryError('Please enter valid start and end times.')
+        setHistoryLoading(false)
+        return
+      }
+      if (startDate > endDate) {
+        setHistoryError('Start time must be before end time.')
+        setHistoryLoading(false)
+        return
+      }
+    }
     const params = new URLSearchParams({ device_id: String(deviceId) })
     if (startVal) params.append('start', new Date(startVal).toISOString())
     if (endVal) params.append('end', new Date(endVal).toISOString())

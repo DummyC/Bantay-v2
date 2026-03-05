@@ -78,12 +78,20 @@ export default function CoastGuardAccount() {
 
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    const current = currentPassword.trim()
+    const next = newPassword.trim()
+    const confirm = confirmPassword.trim()
+    if (!current || !next || !confirm) {
       setChangeError('Please fill in all fields')
       setChangeSuccess(null)
       return
     }
-    if (newPassword !== confirmPassword) {
+    if (next.length < 8) {
+      setChangeError('Password must be at least 8 characters')
+      setChangeSuccess(null)
+      return
+    }
+    if (next !== confirm) {
       setChangeError('New passwords do not match')
       setChangeSuccess(null)
       return
@@ -99,7 +107,7 @@ export default function CoastGuardAccount() {
           'Content-Type': 'application/json',
           ...(authHeader || {}),
         },
-        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        body: JSON.stringify({ current_password: current, new_password: next }),
       })
 
       if (!res.ok) {
