@@ -10,6 +10,6 @@ class Log(Base):
     table_name = Column(String, nullable=False)
     record_id = Column(Integer, nullable=False)
     action = Column(String, nullable=False)  # e.g., 'update', 'delete', 'create'
-    actor_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    actor_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
     details = Column(JSON, nullable=True)
