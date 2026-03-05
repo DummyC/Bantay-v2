@@ -13,7 +13,9 @@ import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   AlertTriangle,
+  Activity,
   Bell,
+  Compass,
   Clock3,
   Loader2,
   Lock,
@@ -1120,7 +1122,7 @@ export default function CoastGuard() {
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <p className="text-xs uppercase tracking-[0.12em] text-cyan-200/80">History mode</p>
-                      <p className="text-sm font-semibold">Device {historyFocusId}</p>
+                      <p className="text-sm font-semibold">{historyFocusId ? deviceLabel(historyFocusId) : 'Device'}</p>
                     </div>
                     <Badge className="bg-cyan-500/20 text-cyan-100">{historyPoints.length} points</Badge>
                   </div>
@@ -1172,14 +1174,21 @@ export default function CoastGuard() {
                       {historySelectedPoint.latitude.toFixed(5)}, {historySelectedPoint.longitude.toFixed(5)}
                     </p>
                     {typeof historySelectedPoint.course === 'number' && (
-                      <p className="text-xs text-slate-400">Course: {Math.round(historySelectedPoint.course)}°</p>
+                      <p className="flex items-center gap-2 text-xs text-slate-400">
+                        <Compass className="h-3.5 w-3.5" /> Course: {Math.round(historySelectedPoint.course)}°
+                      </p>
                     )}
                     {typeof historySelectedPoint.speed === 'number' && (
-                      <p className="text-xs text-slate-400">Speed: {historySelectedPoint.speed?.toFixed(1)} km/h</p>
+                      <p className="flex items-center gap-2 text-xs text-slate-400">
+                        <Activity className="h-3.5 w-3.5" /> Speed: {historySelectedPoint.speed?.toFixed(1)} km/h
+                      </p>
                     )}
-                    {typeof historySelectedPoint.battery_percent === 'number' && (
-                      <p className="text-xs text-slate-400">Battery: {Math.round(historySelectedPoint.battery_percent)}%</p>
-                    )}
+                    <p className="flex items-center gap-2 text-xs text-slate-400">
+                      <Battery className="h-3.5 w-3.5" />
+                      {typeof historySelectedPoint.battery_percent === 'number'
+                        ? `${Math.round(historySelectedPoint.battery_percent)}%`
+                        : 'Battery: Unknown'}
+                    </p>
                     <div className="flex justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setHistorySelectedPoint(null)}>
                         Close
