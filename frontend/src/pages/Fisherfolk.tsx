@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapContainer, Marker, Polyline, Polygon, TileLayer, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polyline, Polygon, TileLayer, Tooltip as LeafletTooltip, useMap } from 'react-leaflet'
 import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   Activity,
+  Battery,
   Clock3,
   History as HistoryIcon,
   LogOut,
@@ -79,6 +80,14 @@ function relativeTime(ts?: string | null): string {
   return `${Math.floor(diff / 86_400_000)}d ago`
 }
 
+function batteryLabel(percent?: number | null): { text: string; tone: 'emerald' | 'amber' | 'red' | 'slate' } {
+  const value = typeof percent === 'number' && Number.isFinite(percent) ? Math.round(percent) : null
+  if (value === null) return { text: 'N/A', tone: 'slate' }
+  if (value <= 15) return { text: `${value}%`, tone: 'red' }
+  if (value <= 40) return { text: `${value}%`, tone: 'amber' }
+  return { text: `${value}%`, tone: 'emerald' }
+}
+
 function statusLabel(ts?: string | null): { text: string; tone: 'emerald' | 'amber' | 'slate' } {
   const t = parseUtc(ts)
   if (t === null) return { text: 'No signal', tone: 'slate' }
@@ -109,7 +118,7 @@ function markerIcon(color: string, heading = 0) {
       <div style="position:relative;width:${circleSize}px;height:${circleSize}px;transform: rotate(${heading}deg);">
         <div style="position:absolute;inset:0;border:2px solid ${color};border-radius:50%;box-sizing:border-box;background:rgba(15,23,42,0.85);"></div>
         <div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid ${color};"></div>
-        <div style="position:absolute;inset:4px;border-radius:50%;background:#0f172a;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;">⛵</div>
+        <div style="position:absolute;inset:4px;border-radius:50%;background:#0f172a;color:white;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px ${color};transform: rotate(-${heading}deg);">⛵</div>
       </div>
     `,
   })
@@ -532,6 +541,7 @@ export default function Fisherfolk() {
                 {trackerList.map((t) => {
                   const pos = t.lastPosition
                   const status = statusLabel(pos?.timestamp)
+                  const battery = batteryLabel(pos?.battery_percent)
                   const isSelected = selectedId === t.device.id
                   return (
                     <Card
@@ -560,6 +570,17 @@ export default function Fisherfolk() {
                             {status.text}
                           </Badge>
                         </div>
+                        <p className={`flex items-center gap-1 text-xs ${
+                          battery.tone === 'emerald'
+                            ? 'text-emerald-200'
+                            : battery.tone === 'amber'
+                              ? 'text-amber-200'
+                              : battery.tone === 'red'
+                                ? 'text-red-200'
+                                : 'text-slate-400'
+                        }`}>
+                          <Battery className="h-3 w-3" /> {battery.text}
+                        </p>
                         {pos?.latitude && (
                           <p className="flex items-center gap-2 text-xs text-slate-300">
                             <MapPin className="h-4 w-4 text-cyan-300" />
@@ -656,7 +677,12 @@ export default function Fisherfolk() {
                     setMapTarget([p.latitude, p.longitude])
                   },
                 }}
-              />
+                >
+                  <LeafletTooltip direction="top" offset={[0, -6]}>
+                    <div className="text-xs font-semibold text-slate-900">{formatGMT8(p.timestamp)}</div>
+                    <div className="text-[11px] text-slate-800">Battery: {batteryLabel(p.battery_percent).text}</div>
+                  </LeafletTooltip>
+                </Marker>
             ))}
 
             {mapTarget && <FlyToPosition position={mapTarget} />}
@@ -707,6 +733,24 @@ export default function Fisherfolk() {
                   <div className="rounded-lg border border-white/10 bg-slate-900/70 p-2">
                     <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Course</p>
                     <p className="mt-1 text-[13px] font-semibold text-white">{selectedTracker.lastPosition.course ?? '—'}°</p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-slate-900/70 p-2">
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Battery</p>
+                    {(() => {
+                      const battery = batteryLabel(selectedTracker.lastPosition.battery_percent)
+                      const toneClass = battery.tone === 'emerald'
+                        ? 'text-emerald-200'
+                        : battery.tone === 'amber'
+                          ? 'text-amber-200'
+                          : battery.tone === 'red'
+                            ? 'text-red-200'
+                            : 'text-slate-300'
+                      return (
+                        <p className={`mt-1 flex items-center gap-1 text-[13px] font-semibold ${toneClass}`}>
+                          <Battery className="h-4 w-4" /> {battery.text}
+                        </p>
+                      )
+                    })()}
                   </div>
                 </div>
               ) : (
@@ -766,6 +810,7 @@ export default function Fisherfolk() {
                     <span className="text-[10px] text-slate-400">{relativeTime(historySelectedPoint.timestamp)}</span>
                   </div>
                   <p className="mt-1 flex items-center gap-1 text-[13px]"><MapPin className="h-3 w-3 text-cyan-300" />{historySelectedPoint.latitude.toFixed(4)}, {historySelectedPoint.longitude.toFixed(4)}</p>
+                  <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-300"><Battery className="h-3 w-3" />{batteryLabel(historySelectedPoint.battery_percent).text}</p>
                   <p className="text-[11px] text-slate-400">{formatGMT8(historySelectedPoint.timestamp)}</p>
                 </div>
               )}
