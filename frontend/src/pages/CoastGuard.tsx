@@ -134,12 +134,27 @@ function toLocalInputValue(d: Date) {
 
 function eventLabel(eventType: string) {
   if (!eventType) return 'Event'
-  if (eventType.startsWith('alarm')) return 'SOS'
-  if (eventType === 'deviceOnline') return 'Online'
-  if (eventType === 'deviceOffline') return 'Offline'
-  if (eventType === 'geofenceExit') return 'Geofence exit'
-  if (eventType === 'geofenceEnter') return 'Geofence enter'
-  return eventType
+  const raw = eventType.trim()
+  const normalized = raw.toLowerCase().replace(/[:_\s-]+/g, '')
+  const lookup: Record<string, string> = {
+    deviceonline: 'Device Online',
+    deviceoffline: 'Device Offline',
+    geofenceenter: 'Geofence Enter',
+    geofenceexit: 'Geofence Exit',
+    alarmsos: 'SOS Alarm',
+    sos: 'SOS Alarm',
+  }
+  if (lookup[normalized]) return lookup[normalized]
+
+  const spaced = raw
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[:_]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+
+  return spaced || 'Event'
 }
 
 function trackerStatus(t: TrackerState): 'online' | 'offline' | 'unknown' {
@@ -845,7 +860,7 @@ export default function CoastGuard() {
         </>
       )}
       <div className="flex h-screen">
-        <aside className="flex h-full w-full max-w-[360px] flex-col border-r border-white/5 bg-slate-900/70 backdrop-blur">
+        <aside className="flex h-full w-full max-w-[360px] flex-col border-r border-white/5 bg-slate-900/70 backdrop-blur overflow-hidden min-h-0">
           <div className="flex items-center justify-between px-4 py-4 gap-3">
             <div className="flex items-center gap-3">
               <img src="/icons/bantay-icon.svg" alt="Bantay" className="h-10 w-auto" />
@@ -884,7 +899,7 @@ export default function CoastGuard() {
 
           <Separator className="bg-white/5" />
 
-          <ScrollArea className="flex-1 px-2">
+          <ScrollArea className="flex-1 min-h-0 px-2">
             <div className="space-y-2 py-3">
               {trackerList.map((t) => {
                 const status = t.status

@@ -171,6 +171,31 @@ function formatRole(role?: string | null) {
     .join(' ')
 }
 
+function formatEventType(value?: string | null) {
+  if (!value) return 'Event'
+  const raw = value.trim()
+  const normalized = raw.toLowerCase().replace(/[:_\s-]+/g, '')
+  const lookup: Record<string, string> = {
+    deviceonline: 'Device Online',
+    deviceoffline: 'Device Offline',
+    geofenceenter: 'Geofence Enter',
+    geofenceexit: 'Geofence Exit',
+    alarmsos: 'SOS Alarm',
+    sos: 'SOS Alarm',
+  }
+  if (lookup[normalized]) return lookup[normalized]
+
+  const spaced = raw
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[:_]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+
+  return spaced || 'Event'
+}
+
 function sanitizeDigits(value: string, maxLength: number) {
   return value.replace(/\D+/g, '').slice(0, maxLength)
 }
@@ -966,7 +991,7 @@ export default function Admin() {
                 <div key={a.id} className="flex items-center justify-between rounded-md border border-white/5 bg-slate-900/50 px-3 py-2">
                   <div className="space-y-0.5">
                     <p className="text-sm font-semibold text-white">{a.device_name || `Device ${a.device_id}`}</p>
-                    <p className="text-xs text-slate-400">{a.event_type}</p>
+                    <p className="text-xs text-slate-400">{formatEventType(a.event_type)}</p>
                   </div>
                   <p className="text-xs text-slate-400">{formatGMT8(a.timestamp)}</p>
                 </div>
@@ -1086,7 +1111,7 @@ export default function Admin() {
               <CardContent className="flex items-center justify-between gap-3 py-3">
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-white">{a.device_name || `Device ${a.device_id}`}</p>
-                  <p className="text-xs text-slate-400">{a.event_type}</p>
+                  <p className="text-xs text-slate-400">{formatEventType(a.event_type)}</p>
                   {a.owner_name && <p className="text-xs text-slate-500">Owner: {a.owner_name}</p>}
                 </div>
                 <div className="text-xs text-slate-400 text-right">
@@ -1791,7 +1816,7 @@ export default function Admin() {
             <div className="border-b border-white/5 bg-slate-900/70 px-6 py-3 space-y-2">
               {renderFilters()}
               {renderActions()}
-              {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
+              {!dialog && error && <p className="mt-2 text-sm text-red-300">{error}</p>}
             </div>
 
             <ScrollArea className="flex-1 min-h-0 overflow-y-auto p-6">

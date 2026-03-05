@@ -94,6 +94,11 @@ function formatGMT8(ts?: string | null, fallback = 'N/A') {
   return new Date(t).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })
 }
 
+function toLocalInputValue(d: Date) {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function markerIcon(color: string, heading = 0) {
   const circleSize = 22
   return L.divIcon({
@@ -176,7 +181,8 @@ export default function Fisherfolk() {
   const [historyDeviceId, setHistoryDeviceId] = useState<number | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
-  const [hours, setHours] = useState(12)
+  const [historyStart, setHistoryStart] = useState('')
+  const [historyEnd, setHistoryEnd] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -359,13 +365,51 @@ export default function Fisherfolk() {
     if (pos) setMapTarget([pos.latitude, pos.longitude])
   }
 
-  const fetchHistory = async (deviceId: number, hrs: number) => {
+  const ensureDefaultRange = () => {
+    const end = new Date()
+    const start = new Date(end.getTime() - 12 * 60 * 60 * 1000)
+    const startStr = toLocalInputValue(start)
+    const endStr = toLocalInputValue(end)
+    setHistoryStart((prev) => prev || startStr)
+    setHistoryEnd((prev) => prev || endStr)
+    return { startStr, endStr }
+  }
+
+  const fetchHistory = async (deviceId: number, startOverride?: string, endOverride?: string) => {
+    const { startStr, endStr } = ensureDefaultRange()
+    const startVal = (startOverride ?? historyStart ?? startStr).trim()
+    const endVal = (endOverride ?? historyEnd ?? endStr).trim()
+
     setHistoryDeviceId(deviceId)
     setHistoryLoading(true)
     setHistoryError(null)
     setHistorySelectedPoint(null)
+
+    if (!startVal || !endVal) {
+      setHistoryError('Please provide both start and end times.')
+      setHistoryLoading(false)
+      return
+    }
+
+    const startDate = new Date(startVal)
+    const endDate = new Date(endVal)
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      setHistoryError('Please enter valid start and end times.')
+      setHistoryLoading(false)
+      return
+    }
+    if (startDate > endDate) {
+      setHistoryError('Start time must be before end time.')
+      setHistoryLoading(false)
+      return
+    }
+
+    const params = new URLSearchParams({ device_id: String(deviceId) })
+    params.append('start', startDate.toISOString())
+    params.append('end', endDate.toISOString())
+
     try {
-      const res = await fetch(`/api/fisherfolk/history?device_id=${deviceId}&hours=${hrs}`, { headers: authHeader })
+      const res = await fetch(`/api/fisherfolk/history?${params.toString()}`, { headers: authHeader })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body?.detail || 'Unable to load history')
@@ -376,7 +420,7 @@ export default function Fisherfolk() {
         const last = points[points.length - 1]
         setMapTarget([last.latitude, last.longitude])
       } else {
-        setHistoryError(`No history in the last ${hrs} hours`)
+        setHistoryError('No history in the selected range')
       }
     } catch (err: any) {
       setHistoryError(err?.message || 'Unable to load history')
@@ -384,6 +428,17 @@ export default function Fisherfolk() {
     } finally {
       setHistoryLoading(false)
     }
+  }
+
+  const clearHistoryView = () => {
+    setHistoryDeviceId(null)
+    setHistorySelectedPoint(null)
+    setHistoryError(null)
+    setHistory((prev) => (historyDeviceId ? { ...prev, [historyDeviceId]: [] } : prev))
+    setHistoryStart('')
+    setHistoryEnd('')
+    const livePos = selectedId ? trackers[selectedId]?.lastPosition : null
+    if (livePos) setMapTarget([livePos.latitude, livePos.longitude])
   }
 
   const activeHistory = historyDeviceId ? history[historyDeviceId] || [] : []
@@ -519,7 +574,8 @@ export default function Fisherfolk() {
                             className="h-7 px-2 text-xs text-cyan-200 hover:text-cyan-100"
                             onClick={(e) => {
                               e.stopPropagation()
-                              fetchHistory(t.device.id, hours)
+                              const { startStr, endStr } = ensureDefaultRange()
+                              fetchHistory(t.device.id, startStr, endStr)
                               handleSelectTracker(t.device.id)
                             }}
                             disabled={historyLoading && historyDeviceId === t.device.id}
@@ -663,27 +719,43 @@ export default function Fisherfolk() {
                 <span className="flex items-center gap-1 text-slate-400"><Shield className="h-3 w-3" /> Only you and coast guard can view</span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="hours" className="text-xs text-slate-300">History (hours)</Label>
+                  <Label htmlFor="history-start" className="text-xs text-slate-300">From</Label>
                   <Input
-                    id="hours"
-                    type="number"
-                    min={1}
-                    max={72}
-                    value={hours}
-                    onChange={(e) => setHours(Math.max(1, Math.min(72, Number(e.target.value) || 1)))}
-                    className="h-9 w-20 bg-slate-900 text-white"
+                    id="history-start"
+                    type="datetime-local"
+                    value={historyStart}
+                    onChange={(e) => setHistoryStart(e.target.value)}
+                    className="h-8 w-40 bg-slate-900 text-white text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="history-end" className="text-xs text-slate-300">To</Label>
+                  <Input
+                    id="history-end"
+                    type="datetime-local"
+                    value={historyEnd}
+                    onChange={(e) => setHistoryEnd(e.target.value)}
+                    className="h-8 w-40 bg-slate-900 text-white text-sm"
                   />
                 </div>
                 <Button
                   size="sm"
                   className="bg-cyan-500 text-slate-950 hover:bg-cyan-400"
-                  disabled={!selectedId || historyLoading}
-                  onClick={() => selectedId && fetchHistory(selectedId, hours)}
+                  disabled={!selectedId || historyLoading || !historyStart.trim() || !historyEnd.trim()}
+                  onClick={() => {
+                    if (!selectedId) return
+                    fetchHistory(selectedId)
+                  }}
                 >
                   {historyLoading ? 'Loading…' : 'Load history'}
                 </Button>
+                {historyDeviceId && (
+                  <Button size="sm" variant="ghost" className="text-slate-200" onClick={clearHistoryView}>
+                    Close history
+                  </Button>
+                )}
                 {historyError && <p className="text-xs text-red-300">{historyError}</p>}
               </div>
 
