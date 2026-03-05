@@ -18,6 +18,7 @@ import {
   Clock3,
   Loader2,
   Lock,
+  Battery,
   MapPin,
   Map as MapIcon,
   Power,
@@ -125,6 +126,19 @@ function formatGMT8(ts?: string | null, fallback = 'N/A') {
   const parsed = parseUtc(ts)
   if (parsed === null) return fallback
   return new Date(parsed).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })
+}
+
+function formatDms(lat: number, lon: number) {
+  const toDms = (value: number, type: 'lat' | 'lon') => {
+    const abs = Math.abs(value)
+    const deg = Math.floor(abs)
+    const minFloat = (abs - deg) * 60
+    const min = Math.floor(minFloat)
+    const sec = (minFloat - min) * 60
+    const dir = type === 'lat' ? (value >= 0 ? 'N' : 'S') : value >= 0 ? 'E' : 'W'
+    return `${deg}° ${min}' ${sec.toFixed(2)}" ${dir}`
+  }
+  return `${toDms(lat, 'lat')}, ${toDms(lon, 'lon')}`
 }
 
 function toLocalInputValue(d: Date) {
@@ -941,7 +955,7 @@ export default function CoastGuard() {
                       </span>
                       {typeof t.batteryPercent === 'number' && (
                         <span className="inline-flex items-center gap-1">
-                          <Activity className="h-3 w-3" />
+                          <Battery className="h-3 w-3" />
                           {Math.round(t.batteryPercent)}%
                         </span>
                       )}
@@ -1310,12 +1324,15 @@ export default function CoastGuard() {
                         ? `${selectedTracker.lastPosition.latitude.toFixed(4)}, ${selectedTracker.lastPosition.longitude.toFixed(4)}`
                         : 'No fix yet'}
                     </p>
+                    {selectedTracker.lastPosition && (
+                      <p className="pl-6 text-xs text-slate-400">{formatDms(selectedTracker.lastPosition.latitude, selectedTracker.lastPosition.longitude)}</p>
+                    )}
                     <p className="flex items-center gap-2">
                       <Radio className="h-4 w-4" />
                       {relativeTime(selectedTracker.lastPosition?.timestamp || selectedTracker.lastEvent?.timestamp)}
                     </p>
                     <p className="flex items-center gap-2">
-                      <Power className="h-4 w-4" />
+                      <Battery className="h-4 w-4" />
                       Battery: {typeof selectedTracker.batteryPercent === 'number' ? `${Math.round(selectedTracker.batteryPercent)}%` : 'Unknown'}
                     </p>
                   </CardContent>

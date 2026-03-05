@@ -771,7 +771,7 @@ export default function Fisherfolk() {
                     type="datetime-local"
                     value={historyStart}
                     onChange={(e) => setHistoryStart(e.target.value)}
-                    className="h-8 w-40 bg-slate-900 text-white text-sm"
+                    className="h-8 w-50 bg-slate-900 text-white text-sm"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -781,7 +781,7 @@ export default function Fisherfolk() {
                     type="datetime-local"
                     value={historyEnd}
                     onChange={(e) => setHistoryEnd(e.target.value)}
-                    className="h-8 w-40 bg-slate-900 text-white text-sm"
+                    className="h-8 w-50 bg-slate-900 text-white text-sm"
                   />
                 </div>
                 <Button
