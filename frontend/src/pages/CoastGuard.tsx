@@ -12,7 +12,6 @@ import {
 import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
-  Activity,
   AlertTriangle,
   Bell,
   Clock3,
@@ -21,7 +20,6 @@ import {
   Battery,
   MapPin,
   Map as MapIcon,
-  Power,
   Radio,
   Search,
   ShieldCheck,
