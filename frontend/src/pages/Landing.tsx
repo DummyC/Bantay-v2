@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-50">
       <header className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-4 px-4 py-6 sm:flex-row sm:items-center sm:px-8">
         <div className="flex items-center gap-3">
           <img src="/icons/bantay-icon.svg" alt="Bantay" className="h-10 w-auto" />
@@ -27,7 +27,7 @@ export default function Landing() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col items-start gap-10 px-4 pb-20 pt-6 sm:px-8 lg:flex-row lg:items-center lg:gap-16">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-start gap-10 px-4 pb-16 pt-6 sm:px-8 lg:flex-row lg:items-center lg:justify-center lg:gap-16 lg:pb-12 lg:pt-0">
         <div className="w-full max-w-3xl space-y-6">
           <Badge variant="outline" className="border-cyan-400/40 bg-cyan-500/10 text-cyan-100">Coast Guard • Fisherfolk • Admin</Badge>
           <h1 className="text-3xl font-semibold leading-tight text-white sm:text-4xl lg:text-5xl">
@@ -76,6 +76,10 @@ export default function Landing() {
           </div>
         </div>
       </main>
+
+      <footer className="border-t border-white/10 bg-slate-900/50 px-4 py-4 text-center text-xs text-slate-400 sm:px-8">
+        Bantay - Boat and Navigator Tracking &amp; Alerting for Fisherfolk's Safety | DummyCore 2026
+      </footer>
     </div>
   )
 }
