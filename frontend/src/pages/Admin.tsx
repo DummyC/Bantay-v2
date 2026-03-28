@@ -212,6 +212,35 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
+function extractErrorDetail(detail: unknown): string | null {
+  if (typeof detail === 'string') {
+    const msg = detail.trim()
+    return msg || null
+  }
+  if (Array.isArray(detail)) {
+    const parts = detail.map((item) => extractErrorDetail(item)).filter(Boolean) as string[]
+    return parts.length ? parts.join('; ') : null
+  }
+  if (detail && typeof detail === 'object') {
+    const obj = detail as Record<string, unknown>
+    const msg = extractErrorDetail(obj.detail) || extractErrorDetail(obj.message) || extractErrorDetail(obj.msg)
+    if (msg) return msg
+    try {
+      const serialized = JSON.stringify(detail)
+      return serialized && serialized !== '{}' ? serialized : null
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+function formatErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message.trim()) return err.message.trim()
+  const detail = extractErrorDetail(err)
+  return detail || fallback
+}
+
 function intOrNull(value: string) {
   const num = Number(value)
   return Number.isNaN(num) ? null : num
@@ -319,7 +348,7 @@ export default function Admin() {
       let msg = `Request failed (${res.status})`
       try {
         const body = await res.json()
-        msg = body?.detail || msg
+        msg = extractErrorDetail(body?.detail ?? body?.message ?? body) || msg
       } catch (err) {
         // ignore
       }
@@ -346,7 +375,7 @@ export default function Admin() {
       const meRes = await fetch('/api/auth/me', { headers: authHeader })
       if (!meRes.ok) {
         const body = await meRes.json().catch(() => ({}))
-        const msg = body?.detail || `Auth check failed (${meRes.status})`
+        const msg = extractErrorDetail(body?.detail ?? body?.message ?? body) || `Auth check failed (${meRes.status})`
         throw new Error(msg)
       }
       const me = (await meRes.json()) as Profile
@@ -367,7 +396,7 @@ export default function Admin() {
       const firstError = responses.find((r) => !r.ok)
       if (firstError) {
         const body = await firstError.json().catch(() => ({}))
-        const msg = body?.detail || `Failed to load admin data (${firstError.status})`
+        const msg = extractErrorDetail(body?.detail ?? body?.message ?? body) || `Failed to load admin data (${firstError.status})`
         throw new Error(msg)
       }
 
@@ -378,8 +407,8 @@ export default function Admin() {
       setAlerts(Array.isArray(a) ? a : [])
       setReports(Array.isArray(r) ? r : [])
       setLogs(Array.isArray(l) ? l : [])
-    } catch (err: any) {
-      setError(err?.message || 'Unable to load admin data')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'Unable to load admin data'))
     } finally {
       setLoading(false)
     }
@@ -512,8 +541,8 @@ export default function Admin() {
       }
       await loadData()
       setDialog(null)
-    } catch (err: any) {
-      setError(err?.message || 'User save failed')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'User save failed'))
     } finally {
       setBusy(false)
     }
@@ -537,8 +566,8 @@ export default function Admin() {
         body: JSON.stringify({ new_password: password }),
       })
       setDialog(null)
-    } catch (err: any) {
-      setError(err?.message || 'Password reset failed')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'Password reset failed'))
     } finally {
       setBusy(false)
     }
@@ -546,20 +575,36 @@ export default function Admin() {
 
   const submitDevice = async () => {
     if (!dialog || dialog.kind !== 'device') return
-    if (deviceForm.unique_id && !isExactLengthDigits(deviceForm.unique_id, 15)) {
+    const ssen = deviceForm.name.trim()
+    const imei = deviceForm.unique_id.trim()
+    const simNumber = deviceForm.sim_number.trim()
+
+    if (!ssen) {
+      setError('SSEN is required.')
+      return
+    }
+    if (!imei) {
+      setError('IMEI is required.')
+      return
+    }
+    if (!isExactLengthDigits(imei, 15)) {
       setError('IMEI must be exactly 15 digits.')
       return
     }
-    if (deviceForm.sim_number && !isValidSimNumber(deviceForm.sim_number)) {
+    if (!simNumber) {
+      setError('SIM number is required.')
+      return
+    }
+    if (!isValidSimNumber(simNumber)) {
       setError('SIM number must start with 09 and be 11 digits.')
       return
     }
     setBusy(true)
     try {
       const payload: any = {
-        unique_id: deviceForm.unique_id || undefined,
-        name: deviceForm.name || undefined,
-        sim_number: deviceForm.sim_number || undefined,
+        unique_id: imei,
+        name: ssen,
+        sim_number: simNumber,
         owner_id: deviceForm.owner_id === '' ? null : Number(deviceForm.owner_id),
         geofence_id: deviceForm.geofence_id === '' ? null : intOrNull(deviceForm.geofence_id),
       }
@@ -571,8 +616,8 @@ export default function Admin() {
       }
       await loadData()
       setDialog(null)
-    } catch (err: any) {
-      setError(err?.message || 'Device save failed')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'Device save failed'))
     } finally {
       setBusy(false)
     }
@@ -580,9 +625,19 @@ export default function Admin() {
 
   const submitGeofence = async () => {
     if (!dialog || dialog.kind !== 'geofence') return
+    const geofenceName = geofenceForm.name.trim()
+    const geofenceArea = geofenceForm.area.trim()
+    if (!geofenceName) {
+      setError('Geofence name is required.')
+      return
+    }
+    if (!geofenceArea) {
+      setError('Geofence area is required.')
+      return
+    }
     setBusy(true)
     try {
-      const payload = { name: geofenceForm.name, description: geofenceForm.description || null, area: geofenceForm.area }
+      const payload = { name: geofenceName, description: geofenceForm.description.trim() || null, area: geofenceArea }
       if (dialog.mode === 'create') {
         await apiFetch('/api/admin/geofences', { method: 'POST', body: JSON.stringify(payload) })
       } else {
@@ -590,8 +645,8 @@ export default function Admin() {
       }
       await loadData()
       setDialog(null)
-    } catch (err: any) {
-      setError(err?.message || 'Geofence save failed')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'Geofence save failed'))
     } finally {
       setBusy(false)
     }
@@ -611,12 +666,12 @@ export default function Admin() {
       const res = await fetch('/api/admin/geofences/upload', { method: 'POST', headers: { ...(authHeader || {}) }, body: fd })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body?.detail || `Upload failed (${res.status})`)
+        throw new Error(extractErrorDetail(body?.detail ?? body?.message ?? body) || `Upload failed (${res.status})`)
       }
       await loadData()
       setDialog(null)
-    } catch (err: any) {
-      setError(err?.message || 'Upload failed')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'Upload failed'))
     } finally {
       setBusy(false)
     }
@@ -627,6 +682,10 @@ export default function Admin() {
     const name = registerForm.name.trim()
     const email = registerForm.email.trim()
     const password = registerForm.password.trim()
+    const existingDeviceId = registerForm.existing_device_id ? Number(registerForm.existing_device_id) : null
+    const ssen = registerForm.device_name.trim()
+    const imei = registerForm.unique_id.trim()
+    const simNumber = registerForm.sim_number.trim()
     if (!name) {
       setError('Name is required.')
       return
@@ -639,19 +698,35 @@ export default function Admin() {
       setError('Password must be at least 8 characters.')
       return
     }
-    if (registerForm.unique_id && !isExactLengthDigits(registerForm.unique_id, 15)) {
-      setError('IMEI must be exactly 15 digits.')
-      return
+    if (dialog.role === 'fisher' && !existingDeviceId) {
+      if (!ssen) {
+        setError('SSEN is required when creating a new device.')
+        return
+      }
+      if (!imei) {
+        setError('IMEI is required when creating a new device.')
+        return
+      }
+      if (!isExactLengthDigits(imei, 15)) {
+        setError('IMEI must be exactly 15 digits.')
+        return
+      }
+      if (!simNumber) {
+        setError('SIM number is required when creating a new device.')
+        return
+      }
+      if (!isValidSimNumber(simNumber)) {
+        setError('SIM number must start with 09 and be 11 digits.')
+        return
+      }
     }
-    if (registerForm.sim_number && !isValidSimNumber(registerForm.sim_number)) {
+    if (dialog.role === 'fisher' && existingDeviceId && simNumber && !isValidSimNumber(simNumber)) {
       setError('SIM number must start with 09 and be 11 digits.')
       return
     }
     setBusy(true)
     try {
       if (dialog.role === 'fisher') {
-        const existingDeviceId = registerForm.existing_device_id ? Number(registerForm.existing_device_id) : null
-
         if (existingDeviceId) {
           const userRes = await apiFetch('/api/admin/users', {
             method: 'POST',
@@ -670,8 +745,8 @@ export default function Admin() {
               owner_id: user.id,
               geofence_id: registerForm.geofence_id ? Number(registerForm.geofence_id) : undefined,
             }
-            if (registerForm.device_name) devicePayload.name = registerForm.device_name
-            if (registerForm.sim_number) devicePayload.sim_number = registerForm.sim_number
+            if (ssen) devicePayload.name = ssen
+            if (simNumber) devicePayload.sim_number = simNumber
             await apiFetch(`/api/admin/devices/${existingDeviceId}`, { method: 'PUT', body: JSON.stringify(devicePayload) })
           } catch (err) {
             try {
@@ -686,10 +761,10 @@ export default function Admin() {
             fisher_name: name,
             fisher_email: email,
             fisher_password: password,
-            unique_id: registerForm.unique_id || undefined,
-            name: registerForm.device_name || undefined,
-            sim_number: registerForm.sim_number || undefined,
-            medical_record: registerForm.medical_record || undefined,
+            unique_id: imei,
+            name: ssen,
+            sim_number: simNumber,
+            medical_record: registerForm.medical_record.trim() || undefined,
             geofence_id: registerForm.geofence_id ? Number(registerForm.geofence_id) : undefined,
           }
           await apiFetch('/api/admin/register', { method: 'POST', body: JSON.stringify(payload) })
@@ -703,8 +778,8 @@ export default function Admin() {
       }
       await loadData()
       setDialog(null)
-    } catch (err: any) {
-      setError(err?.message || 'Registration failed')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'Registration failed'))
     } finally {
       setBusy(false)
     }
@@ -728,12 +803,12 @@ export default function Admin() {
       const res = await fetch(url, { method: 'DELETE', headers: { ...(authHeader || {}) } })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body?.detail || `Delete failed (${res.status})`)
+        throw new Error(extractErrorDetail(body?.detail ?? body?.message ?? body) || `Delete failed (${res.status})`)
       }
       await loadData()
       setDialog(null)
-    } catch (err: any) {
-      setError(err?.message || 'Delete failed')
+    } catch (err: unknown) {
+      setError(formatErrorMessage(err, 'Delete failed'))
     } finally {
       setBusy(false)
     }
