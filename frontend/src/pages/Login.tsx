@@ -19,7 +19,7 @@ export default function Login() {
     if (!token) return
     ;(async () => {
       try {
-        const me = await fetch('/api/auth/me', { headers: { Authorization: token } })
+        const me = await fetch('/api/auth/me', { headers: { Authorization: token }, cache: 'no-store' })
         if (!me.ok) {
           localStorage.removeItem('auth')
           return
@@ -51,7 +51,7 @@ export default function Login() {
       const token = `${data.token_type} ${data.access_token}`
       localStorage.setItem('auth', token)
 
-      const me = await fetch('/api/auth/me', { headers: { Authorization: token } })
+      const me = await fetch('/api/auth/me', { headers: { Authorization: token }, cache: 'no-store' })
       if (!me.ok) throw new Error('Failed to fetch user')
       const u = await me.json()
       const role = u.role?.name || u.role

@@ -28,10 +28,17 @@ self.addEventListener('fetch', (event) => {
   const isSameOrigin = url.origin === self.location.origin
   if (!isSameOrigin) return
 
+  // Never cache API responses (especially /api/auth/me) to avoid stale role/session data.
+  if (url.pathname.startsWith('/api/')) return
+
   const isNavigation = event.request.mode === 'navigate' || event.request.destination === 'document'
   const isAssetRequest = url.pathname.startsWith('/assets/')
   const isScriptLike = event.request.destination === 'script' || event.request.destination === 'worker'
   const isStyleLike = event.request.destination === 'style'
+  const isStaticPublicAsset =
+    url.pathname.startsWith('/icons/') ||
+    url.pathname === '/manifest.webmanifest' ||
+    url.pathname === '/vite.svg'
 
   // Always prefer a fresh HTML document to avoid stale hashed bundle references.
   if (isNavigation) {
@@ -68,7 +75,7 @@ self.addEventListener('fetch', (event) => {
         }
       }
 
-      if (networkResponse.ok) {
+      if (networkResponse.ok && (isAssetRequest || isScriptLike || isStyleLike || isStaticPublicAsset)) {
         const copy = networkResponse.clone()
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {
           // ignore cache write failures
