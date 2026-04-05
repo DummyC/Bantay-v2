@@ -142,8 +142,8 @@ export default function CoastGuardReports() {
           </div>
         </aside>
 
-        <main className="flex-1 overflow-hidden">
-          <div className="flex h-full flex-col">
+        <main className="min-h-0 flex-1 overflow-hidden">
+          <div className="flex h-full min-h-0 flex-col">
             <div className="flex items-center justify-between border-b border-white/5 bg-slate-900/80 px-6 py-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.14em] text-slate-400">Reports</p>
@@ -176,7 +176,7 @@ export default function CoastGuardReports() {
               </select>
             </div>
 
-            <ScrollArea className="flex-1 p-6">
+            <ScrollArea className="min-h-0 flex-1 p-6">
               {loading && (
                 <div className="flex h-full items-center justify-center text-slate-300">
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading reports...
