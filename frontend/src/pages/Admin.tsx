@@ -1569,7 +1569,7 @@ export default function Admin() {
             {dialogErrorNotice}
             <div className="space-y-3">
               <div>
-                <Label className="text-sm text-slate-200">Name (optional)</Label>
+                <Label className="text-sm text-slate-200">Name</Label>
                 <Input value={geofenceForm.name} onChange={(e) => setGeofenceForm({ ...geofenceForm, name: e.target.value })} className="bg-slate-900 text-white" />
               </div>
               <div>
