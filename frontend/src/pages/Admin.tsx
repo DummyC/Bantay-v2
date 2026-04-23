@@ -17,8 +17,10 @@ import {
   LogOut,
   Map,
   MapPinned,
+  Moon,
   Plus,
   RefreshCw,
+  Sun,
   Trash2,
   Upload,
   Users,
@@ -33,6 +35,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import './AdminTheme.css'
 
 type UserRecord = {
   id: number
@@ -250,6 +253,10 @@ function intOrNull(value: string) {
 
 export default function Admin() {
   const navigate = useNavigate()
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark'
+    return localStorage.getItem('admin-theme-mode') === 'light' ? 'light' : 'dark'
+  })
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard')
   const [loading, setLoading] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -295,6 +302,11 @@ export default function Admin() {
     }
     loadData()
   }, [authValue])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('admin-theme-mode', themeMode)
+  }, [themeMode])
 
   useEffect(() => {
     if (!error) return
@@ -1868,7 +1880,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className={`admin-theme min-h-screen bg-slate-950 text-slate-100 ${themeMode === 'light' ? 'admin-theme-light' : 'admin-theme-dark'}`}>
       <div className="flex h-screen">
         <aside className="flex h-full w-72 flex-col border-r border-white/5 bg-slate-900/70 backdrop-blur">
           <div className="px-4 py-4">
@@ -1911,6 +1923,15 @@ export default function Admin() {
                 <p className="text-lg font-semibold text-white">{activeTab === 'dashboard' ? 'Dashboard' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</p>
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                  className="border-white/20 text-white"
+                >
+                  {themeMode === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                  {themeMode === 'dark' ? 'Light mode' : 'Dark mode'}
+                </Button>
                 <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="border-white/20 text-white">
                   <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Reload
                 </Button>
