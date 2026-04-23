@@ -52,6 +52,7 @@ type DeviceRecord = {
   sim_number?: string | null
   user_id?: number | null
   geofence_id?: number | null
+  created_at?: string | null
 }
 
 type GeofenceRecord = {
@@ -60,6 +61,7 @@ type GeofenceRecord = {
   description?: string | null
   area?: string | null
   traccar_id?: number | null
+  created_at?: string | null
 }
 
 type AlertRecord = {
@@ -420,6 +422,15 @@ export default function Admin() {
       if (roleFilter !== 'all' && u.role !== roleFilter) return false
       if (!term) return true
       return [u.name, u.email, u.role, u.id?.toString()].some((v) => (v || '').toLowerCase().includes(term))
+    }).sort((a, b) => {
+      const aTime = a.created_at ? Date.parse(a.created_at) : Number.NaN
+      const bTime = b.created_at ? Date.parse(b.created_at) : Number.NaN
+      const aValid = Number.isFinite(aTime)
+      const bValid = Number.isFinite(bTime)
+      if (aValid && bValid) return bTime - aTime
+      if (aValid) return -1
+      if (bValid) return 1
+      return b.id - a.id
     })
   }, [users, search, roleFilter])
 
@@ -430,6 +441,15 @@ export default function Admin() {
       if (deviceOwnerFilter === 'unassigned' && d.user_id) return false
       if (!term) return true
       return [d.name, d.unique_id, d.id?.toString(), d.traccar_device_id?.toString()].some((v) => (v || '').toLowerCase().includes(term))
+    }).sort((a, b) => {
+      const aTime = a.created_at ? Date.parse(a.created_at) : Number.NaN
+      const bTime = b.created_at ? Date.parse(b.created_at) : Number.NaN
+      const aValid = Number.isFinite(aTime)
+      const bValid = Number.isFinite(bTime)
+      if (aValid && bValid) return bTime - aTime
+      if (aValid) return -1
+      if (bValid) return 1
+      return b.id - a.id
     })
   }, [devices, search, deviceOwnerFilter])
 
@@ -438,6 +458,15 @@ export default function Admin() {
     return geofences.filter((g) => {
       if (!term) return true
       return [g.name, g.description, g.traccar_id?.toString()].some((v) => (v || '').toLowerCase().includes(term))
+    }).sort((a, b) => {
+      const aTime = a.created_at ? Date.parse(a.created_at) : Number.NaN
+      const bTime = b.created_at ? Date.parse(b.created_at) : Number.NaN
+      const aValid = Number.isFinite(aTime)
+      const bValid = Number.isFinite(bTime)
+      if (aValid && bValid) return bTime - aTime
+      if (aValid) return -1
+      if (bValid) return 1
+      return b.id - a.id
     })
   }, [geofences, search])
 
