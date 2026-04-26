@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type KeyboardEvent, type ReactElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -215,6 +215,42 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
+function normalizeMedicalTag(value: string) {
+  return value.trim().toLowerCase()
+}
+
+function splitMedicalTags(value?: string | null) {
+  if (!value) return []
+  const seen = new Set<string>()
+  return value
+    .split(/[\n,;]+/)
+    .map((part) => part.trim())
+    .filter((part) => {
+      if (!part) return false
+      const key = normalizeMedicalTag(part)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
+
+function addMedicalTag(tags: string[], tag: string) {
+  const clean = tag.trim()
+  if (!clean) return tags
+  const key = normalizeMedicalTag(clean)
+  if (tags.some((item) => normalizeMedicalTag(item) === key)) return tags
+  return [...tags, clean]
+}
+
+function removeMedicalTag(tags: string[], tag: string) {
+  const key = normalizeMedicalTag(tag)
+  return tags.filter((item) => normalizeMedicalTag(item) !== key)
+}
+
+function joinMedicalTags(tags: string[]) {
+  return tags.join(', ')
+}
+
 function extractErrorDetail(detail: unknown): string | null {
   if (typeof detail === 'string') {
     const msg = detail.trim()
@@ -271,6 +307,8 @@ export default function Admin() {
   const [registerForm, setRegisterForm] = useState({ ...defaultRegisterForm })
   const [geofenceFile, setGeofenceFile] = useState<File | null>(null)
   const [deleteCascade, setDeleteCascade] = useState(false)
+  const [userMedicalInput, setUserMedicalInput] = useState('')
+  const [registerMedicalInput, setRegisterMedicalInput] = useState('')
 
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState<'all' | 'administrator' | 'coast_guard' | 'fisherfolk'>('all')
@@ -313,6 +351,10 @@ export default function Admin() {
         role: dialog.user.role || 'fisherfolk',
         medical_record: dialog.user.medical_record || '',
       })
+      setUserMedicalInput('')
+    }
+    if (dialog.kind === 'user' && !dialog.user) {
+      setUserMedicalInput('')
     }
     if (dialog.kind === 'device' && dialog.device) {
       setDeviceForm({
@@ -335,6 +377,7 @@ export default function Admin() {
     }
     if (dialog.kind === 'register') {
       setRegisterForm({ ...defaultRegisterForm })
+      setRegisterMedicalInput('')
     }
     if (dialog.kind === 'geofence-upload') {
       setGeofenceFile(null)
@@ -1057,6 +1100,68 @@ export default function Admin() {
   const fisherfolkUsers = useMemo(() => users.filter((u) => u.role === 'fisherfolk'), [users])
   const geofenceOptions = useMemo(() => geofences.map((g) => ({ id: g.id, name: g.name })), [geofences])
   const unassignedDevices = useMemo(() => devices.filter((d) => !d.user_id), [devices])
+  const knownMedicalTags = useMemo(() => {
+    const seen = new Set<string>()
+    const tags: string[] = []
+    users
+      .filter((u) => u.role === 'fisherfolk')
+      .forEach((u) => {
+        splitMedicalTags(u.medical_record).forEach((tag) => {
+          const key = normalizeMedicalTag(tag)
+          if (!seen.has(key)) {
+            seen.add(key)
+            tags.push(tag)
+          }
+        })
+      })
+    return tags
+  }, [users])
+  const userMedicalTags = useMemo(() => splitMedicalTags(userForm.medical_record), [userForm.medical_record])
+  const registerMedicalTags = useMemo(() => splitMedicalTags(registerForm.medical_record), [registerForm.medical_record])
+  const userMedicalSuggestions = useMemo(() => {
+    const query = userMedicalInput.trim().toLowerCase()
+    const selected = new Set(userMedicalTags.map((tag) => normalizeMedicalTag(tag)))
+    return knownMedicalTags
+      .filter((tag) => !selected.has(normalizeMedicalTag(tag)))
+      .filter((tag) => (query ? tag.toLowerCase().includes(query) : true))
+      .slice(0, 8)
+  }, [knownMedicalTags, userMedicalInput, userMedicalTags])
+  const registerMedicalSuggestions = useMemo(() => {
+    const query = registerMedicalInput.trim().toLowerCase()
+    const selected = new Set(registerMedicalTags.map((tag) => normalizeMedicalTag(tag)))
+    return knownMedicalTags
+      .filter((tag) => !selected.has(normalizeMedicalTag(tag)))
+      .filter((tag) => (query ? tag.toLowerCase().includes(query) : true))
+      .slice(0, 8)
+  }, [knownMedicalTags, registerMedicalInput, registerMedicalTags])
+
+  const handleTagInputKeyDown = (event: KeyboardEvent<HTMLInputElement>, value: string, onCommit: () => void) => {
+    if (event.key === 'Enter' || event.key === ',' || event.key === 'Tab') {
+      if (!value.trim()) {
+        if (event.key === ',') event.preventDefault()
+        return
+      }
+      event.preventDefault()
+      onCommit()
+    }
+  }
+
+  const commitUserMedicalInput = () => {
+    setUserForm((prev) => {
+      const nextTags = addMedicalTag(splitMedicalTags(prev.medical_record), userMedicalInput)
+      return { ...prev, medical_record: joinMedicalTags(nextTags) }
+    })
+    setUserMedicalInput('')
+  }
+
+  const commitRegisterMedicalInput = () => {
+    setRegisterForm((prev) => {
+      const nextTags = addMedicalTag(splitMedicalTags(prev.medical_record), registerMedicalInput)
+      return { ...prev, medical_record: joinMedicalTags(nextTags) }
+    })
+    setRegisterMedicalInput('')
+  }
+
   const geofenceNameById = (id?: number | null) => geofences.find((g) => g.id === id)?.name || 'None'
   const ownerDisplay = (ownerId?: number | null) => {
     const owner = users.find((u) => u.id === ownerId)
@@ -1355,11 +1460,46 @@ export default function Admin() {
                 </div>
                 <div>
                   <Label className="text-sm text-slate-200">Medical record (optional)</Label>
-                  <textarea
-                    value={userForm.medical_record}
-                    onChange={(e) => setUserForm({ ...userForm, medical_record: e.target.value })}
-                    className="h-20 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
-                  />
+                  <div className="mt-1 space-y-2 rounded-md border border-white/10 bg-slate-900 p-2">
+                    <div className="flex flex-wrap gap-2">
+                      {userMedicalTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setUserForm((prev) => ({ ...prev, medical_record: joinMedicalTags(removeMedicalTag(splitMedicalTags(prev.medical_record), tag)) }))}
+                          className="rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-500/25"
+                          title="Click to remove"
+                        >
+                          {tag} x
+                        </button>
+                      ))}
+                      {!userMedicalTags.length && <p className="text-xs text-slate-400">Add one or more conditions as tags.</p>}
+                    </div>
+                    <Input
+                      value={userMedicalInput}
+                      onChange={(e) => setUserMedicalInput(e.target.value)}
+                      onKeyDown={(e) => handleTagInputKeyDown(e, userMedicalInput, commitUserMedicalInput)}
+                      placeholder="Type a condition, then press Enter"
+                      className="bg-slate-900 text-white"
+                    />
+                  </div>
+                  {!!userMedicalInput.trim() && !!userMedicalSuggestions.length && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {userMedicalSuggestions.map((tag) => (
+                        <button
+                          key={`user-suggestion-${tag}`}
+                          type="button"
+                          onClick={() => {
+                            setUserForm((prev) => ({ ...prev, medical_record: joinMedicalTags(addMedicalTag(splitMedicalTags(prev.medical_record), tag)) }))
+                            setUserMedicalInput('')
+                          }}
+                          className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-200 hover:bg-white/10"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1739,11 +1879,46 @@ export default function Admin() {
               {isFisher && (
                 <div>
                   <Label className="text-sm text-slate-200">Medical record (optional)</Label>
-                  <textarea
-                    value={registerForm.medical_record}
-                    onChange={(e) => setRegisterForm({ ...registerForm, medical_record: e.target.value })}
-                    className="h-20 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
-                  />
+                  <div className="mt-1 space-y-2 rounded-md border border-white/10 bg-slate-900 p-2">
+                    <div className="flex flex-wrap gap-2">
+                      {registerMedicalTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setRegisterForm((prev) => ({ ...prev, medical_record: joinMedicalTags(removeMedicalTag(splitMedicalTags(prev.medical_record), tag)) }))}
+                          className="rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-500/25"
+                          title="Click to remove"
+                        >
+                          {tag} x
+                        </button>
+                      ))}
+                      {!registerMedicalTags.length && <p className="text-xs text-slate-400">Add one or more conditions as tags.</p>}
+                    </div>
+                    <Input
+                      value={registerMedicalInput}
+                      onChange={(e) => setRegisterMedicalInput(e.target.value)}
+                      onKeyDown={(e) => handleTagInputKeyDown(e, registerMedicalInput, commitRegisterMedicalInput)}
+                      placeholder="Type a condition, then press Enter"
+                      className="bg-slate-900 text-white"
+                    />
+                  </div>
+                  {!!registerMedicalInput.trim() && !!registerMedicalSuggestions.length && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {registerMedicalSuggestions.map((tag) => (
+                        <button
+                          key={`register-suggestion-${tag}`}
+                          type="button"
+                          onClick={() => {
+                            setRegisterForm((prev) => ({ ...prev, medical_record: joinMedicalTags(addMedicalTag(splitMedicalTags(prev.medical_record), tag)) }))
+                            setRegisterMedicalInput('')
+                          }}
+                          className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-200 hover:bg-white/10"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {isFisher && (
