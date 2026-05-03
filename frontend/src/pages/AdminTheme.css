@@ -118,13 +118,16 @@
 }
 
 .admin-theme.admin-theme-light {
-  background: radial-gradient(circle at 12% 6%, #eff6ff 0%, #dbeafe 46%, #bfdbfe 100%);
+  --admin-blue-1: #eff6ff;
+  --admin-blue-2: #bfdbfe;
+  --admin-blue-3: #3b82f6;
+  background: radial-gradient(circle at 12% 6%, var(--admin-blue-1) 0%, var(--admin-blue-2) 46%, #93c5fd 100%);
   color-scheme: light;
 }
 
 .admin-theme.admin-theme-light aside {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(239, 246, 255, 0.9) 100%) !important;
-  box-shadow: inset -1px 0 0 rgba(37, 99, 235, 0.08), 18px 0 40px rgba(37, 99, 235, 0.04);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 246, 255, 0.94) 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(59, 130, 246, 0.08), 18px 0 40px rgba(59, 130, 246, 0.04);
 }
 
 .admin-theme.admin-theme-light aside p,
@@ -144,19 +147,19 @@
 }
 
 .admin-theme.admin-theme-light .admin-sidebar-nav-item:hover {
-  background: linear-gradient(90deg, rgba(219, 234, 254, 0.9) 0%, rgba(191, 219, 254, 0.9) 100%) !important;
+  background: linear-gradient(90deg, var(--admin-blue-1) 0%, var(--admin-blue-2) 100%) !important;
   color: #0f172a !important;
 }
 
 .admin-theme.admin-theme-light .admin-sidebar-nav-item-active {
-  background: linear-gradient(90deg, rgba(191, 219, 254, 0.98) 0%, rgba(147, 197, 253, 0.98) 100%) !important;
+  background: linear-gradient(90deg, var(--admin-blue-2) 0%, var(--admin-blue-3) 100%) !important;
   color: #081a3b !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 22px rgba(37, 99, 235, 0.16);
-  border-color: rgba(37, 99, 235, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 10px 22px rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.32) !important;
 }
 
 .admin-theme.admin-theme-light .admin-sidebar-nav-item-active:hover {
-  background: linear-gradient(90deg, rgba(147, 197, 253, 1) 0%, rgba(96, 165, 250, 1) 100%) !important;
+  background: linear-gradient(90deg, var(--admin-blue-3) 0%, #60a5fa 100%) !important;
   color: #081a3b !important;
 }
 
@@ -169,32 +172,32 @@
 }
 
 .admin-theme.admin-theme-light main > div > div {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 251, 255, 0.96) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(239, 246, 255, 0.98) 100%) !important;
 }
 
 .admin-theme.admin-theme-light .bg-slate-950 {
-  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%) !important;
+  background: linear-gradient(180deg, var(--admin-blue-1) 0%, var(--admin-blue-2) 100%) !important;
 }
 
 .admin-theme.admin-theme-light .bg-slate-900\/80,
 .admin-theme.admin-theme-light .bg-slate-900\/70,
 .admin-theme.admin-theme-light .bg-slate-900\/60,
 .admin-theme.admin-theme-light .bg-slate-900\/50 {
-  background-color: rgba(248, 251, 255, 0.94) !important;
+  background-color: rgba(239, 246, 255, 0.96) !important;
   backdrop-filter: blur(10px);
 }
 
 .admin-theme.admin-theme-light .bg-slate-900,
 .admin-theme.admin-theme-light .bg-slate-800,
 .admin-theme.admin-theme-light .bg-slate-700 {
-  background-color: #f8fbff !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 24px rgba(37, 99, 235, 0.06);
+  background-color: #eff6ff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 8px 24px rgba(59, 130, 246, 0.06);
 }
 
 .admin-theme.admin-theme-light .border-b.border-white\/5.bg-slate-900\/80,
 .admin-theme.admin-theme-light .border-b.border-white\/5.bg-slate-900\/70,
 .admin-theme.admin-theme-light .border-b.border-white\/5.bg-slate-900\/60 {
-  background: rgba(248, 251, 255, 0.94) !important;
+  background: rgba(239, 246, 255, 0.96) !important;
   backdrop-filter: blur(12px);
 }
 
@@ -202,20 +205,20 @@
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900\/60,
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900\/50,
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900 {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(239, 246, 255, 0.94) 100%) !important;
-  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(239, 246, 255, 0.96) 100%) !important;
+  box-shadow: 0 14px 30px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900\/50 {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(235, 243, 255, 0.92) 100%) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(219, 234, 254, 0.96) 100%) !important;
 }
 
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900\/70:hover,
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900\/60:hover,
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900\/50:hover,
 .admin-theme.admin-theme-light .border-white\/5.bg-slate-900:hover {
-  border-color: rgba(37, 99, 235, 0.28) !important;
-  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  border-color: rgba(59, 130, 246, 0.32) !important;
+  box-shadow: 0 16px 34px rgba(59, 130, 246, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
 .admin-theme.admin-theme-light .admin-list-card {
@@ -227,10 +230,10 @@
 }
 
 .admin-theme.admin-theme-light .admin-list-card:hover {
-  transform: translateY(-2px) scale(1.005);
-  border-color: rgba(37, 99, 235, 0.52) !important;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(219, 234, 254, 0.98) 100%) !important;
-  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.16), 0 0 0 1px rgba(96, 165, 250, 0.18) inset;
+  /* transform: translateY(-2px) scale(1.005); */
+  border-color: rgba(59, 130, 246, 0.54) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(219, 234, 254, 0.99) 100%) !important;
+  box-shadow: 0 18px 36px rgba(59, 130, 246, 0.16), 0 0 0 1px rgba(59, 130, 246, 0.18) inset;
 }
 
 .admin-theme.admin-theme-light .admin-list-card:hover .text-white,
@@ -241,16 +244,16 @@
 
 .admin-theme.admin-theme-light .admin-list-card:hover .text-slate-400,
 .admin-theme.admin-theme-light .admin-list-card:hover .text-slate-500 {
-  color: #1d4ed8 !important;
+  color: #2563eb !important;
 }
 
 .admin-theme.admin-theme-light .admin-list-card:hover .border-white\/5,
 .admin-theme.admin-theme-light .admin-list-card:hover .border-white\/10 {
-  border-color: rgba(37, 99, 235, 0.24) !important;
+  border-color: rgba(59, 130, 246, 0.28) !important;
 }
 
 .admin-theme.admin-theme-light .admin-list-card:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.6);
+  outline: 3px solid rgba(59, 130, 246, 0.65);
   outline-offset: 2px;
 }
 
@@ -265,14 +268,14 @@
   height: 2px;
   margin-top: 0.35rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.3) 100%);
+  background: linear-gradient(90deg, var(--admin-blue-3) 0%, var(--admin-blue-2) 100%);
 }
 
 .admin-theme.admin-theme-light .border-white\/5,
 .admin-theme.admin-theme-light .border-white\/10,
 .admin-theme.admin-theme-light .border-white\/15,
 .admin-theme.admin-theme-light .border-white\/20 {
-  border-color: rgba(37, 99, 235, 0.2) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
 }
 
 .admin-theme.admin-theme-light .text-white {
@@ -284,19 +287,19 @@
 }
 
 .admin-theme.admin-theme-light .text-slate-200 {
-  color: #1e3a8a !important;
+  color: #1e40af !important;
 }
 
 .admin-theme.admin-theme-light .text-slate-300 {
-  color: #3b82f6 !important;
+  color: #2563eb !important;
 }
 
 .admin-theme.admin-theme-light .text-slate-400 {
-  color: #64748b !important;
+  color: #1d4ed8 !important;
 }
 
 .admin-theme.admin-theme-light .text-slate-500 {
-  color: #7c93b8 !important;
+  color: #60a5fa !important;
 }
 
 .admin-theme.admin-theme-light .text-cyan-100,
@@ -310,34 +313,34 @@
 .admin-theme.admin-theme-light .bg-cyan-500\/20,
 .admin-theme.admin-theme-light .bg-cyan-500\/15,
 .admin-theme.admin-theme-light .bg-cyan-500\/10 {
-  background: linear-gradient(135deg, rgba(239, 246, 255, 0.98) 0%, rgba(219, 234, 254, 0.98) 100%) !important;
-  border-color: rgba(37, 99, 235, 0.16) !important;
-  color: #1d4ed8 !important;
+  background: linear-gradient(135deg, var(--admin-blue-1) 0%, var(--admin-blue-2) 100%) !important;
+  border-color: rgba(59, 130, 246, 0.16) !important;
+  color: #1e40af !important;
 }
 
 .admin-theme.admin-theme-light .bg-emerald-500\/15 {
-  background: linear-gradient(135deg, rgba(236, 253, 245, 0.98) 0%, rgba(209, 250, 229, 0.98) 100%) !important;
-  border-color: rgba(16, 185, 129, 0.16) !important;
-  color: #047857 !important;
+  background: linear-gradient(135deg, var(--admin-blue-2) 0%, var(--admin-blue-3) 100%) !important;
+  border-color: rgba(59, 130, 246, 0.18) !important;
+  color: #0f172a !important;
 }
 
 .admin-theme.admin-theme-light .bg-amber-500\/15 {
-  background: linear-gradient(135deg, rgba(255, 251, 235, 0.98) 0%, rgba(254, 243, 199, 0.98) 100%) !important;
-  border-color: rgba(245, 158, 11, 0.18) !important;
-  color: #b45309 !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--admin-blue-1) 100%) !important;
+  border-color: rgba(59, 130, 246, 0.18) !important;
+  color: #1e40af !important;
 }
 
 .admin-theme.admin-theme-light .bg-red-500\/15 {
-  background: linear-gradient(135deg, rgba(254, 242, 242, 0.98) 0%, rgba(254, 226, 226, 0.98) 100%) !important;
-  border-color: rgba(239, 68, 68, 0.18) !important;
-  color: #b91c1c !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--admin-blue-2) 100%) !important;
+  border-color: rgba(59, 130, 246, 0.18) !important;
+  color: #0f172a !important;
 }
 
 .admin-theme.admin-theme-light .bg-slate-800,
 .admin-theme.admin-theme-light .bg-slate-700 {
-  background: linear-gradient(135deg, rgba(248, 251, 255, 0.98) 0%, rgba(226, 232, 240, 0.98) 100%) !important;
-  border-color: rgba(100, 116, 139, 0.16) !important;
-  color: #1e3a8a !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--admin-blue-1) 100%) !important;
+  border-color: rgba(59, 130, 246, 0.16) !important;
+  color: #1e40af !important;
 }
 
 .admin-theme.admin-theme-light .bg-white\/5,
@@ -348,51 +351,51 @@
 .admin-theme.admin-theme-light .hover\:bg-slate-900:hover,
 .admin-theme.admin-theme-light .hover\:bg-slate-800:hover,
 .admin-theme.admin-theme-light .hover\:bg-slate-700:hover {
-  background-color: #dbeafe !important;
+  background-color: var(--admin-blue-2) !important;
 }
 
 .admin-theme.admin-theme-light .ring-cyan-400\/50 {
-  --tw-ring-color: rgba(37, 99, 235, 0.35) !important;
+  --tw-ring-color: rgba(59, 130, 246, 0.35) !important;
 }
 
 .admin-theme.admin-theme-light .bg-cyan-500\/20,
 .admin-theme.admin-theme-light .bg-cyan-500\/15,
 .admin-theme.admin-theme-light .bg-cyan-500\/10 {
-  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.1), 0 4px 10px rgba(37, 99, 235, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.12), 0 4px 10px rgba(59, 130, 246, 0.05);
 }
 
 .admin-theme.admin-theme-light .bg-cyan-600,
 .admin-theme.admin-theme-light .bg-emerald-600,
 .admin-theme.admin-theme-light .bg-amber-600 {
-  filter: saturate(1.18) brightness(1.02);
+  filter: saturate(1.12) brightness(1.02);
 }
 
 .admin-theme.admin-theme-light .admin-stat-icon {
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 8px 18px rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 8px 18px rgba(59, 130, 246, 0.12);
 }
 
 .admin-theme.admin-theme-light .admin-stat-icon.bg-cyan-500\/15 {
-  background: linear-gradient(135deg, rgba(239, 246, 255, 0.98) 0%, rgba(191, 219, 254, 0.98) 100%) !important;
+  background: linear-gradient(135deg, var(--admin-blue-1) 0%, var(--admin-blue-2) 100%) !important;
 }
 
 .admin-theme.admin-theme-light .admin-stat-icon.bg-emerald-500\/15 {
-  background: linear-gradient(135deg, rgba(236, 253, 245, 0.98) 0%, rgba(167, 243, 208, 0.98) 100%) !important;
+  background: linear-gradient(135deg, var(--admin-blue-2) 0%, var(--admin-blue-3) 100%) !important;
 }
 
 .admin-theme.admin-theme-light .admin-stat-icon.bg-amber-500\/15 {
-  background: linear-gradient(135deg, rgba(255, 251, 235, 0.98) 0%, rgba(253, 230, 138, 0.98) 100%) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, var(--admin-blue-1) 100%) !important;
 }
 
 .admin-theme.admin-theme-light .admin-stat-icon.bg-red-500\/15 {
-  background: linear-gradient(135deg, rgba(254, 242, 242, 0.98) 0%, rgba(252, 165, 165, 0.98) 100%) !important;
+  background: linear-gradient(135deg, var(--admin-blue-1) 0%, var(--admin-blue-3) 100%) !important;
 }
 
 .admin-theme.admin-theme-light .admin-stat-icon.bg-cyan-500\/15,
 .admin-theme.admin-theme-light .admin-stat-icon.bg-emerald-500\/15,
 .admin-theme.admin-theme-light .admin-stat-icon.bg-amber-500\/15,
 .admin-theme.admin-theme-light .admin-stat-icon.bg-red-500\/15 {
-  color: #1d4ed8 !important;
+  color: #1e40af !important;
 }
 
 .admin-theme.admin-theme-light .admin-stat-icon svg {
@@ -450,7 +453,7 @@
 .admin-theme.admin-theme-light .bg-slate-900\/80 textarea,
 .admin-theme.admin-theme-light .bg-slate-900 textarea {
   background-color: rgba(255, 255, 255, 0.98) !important;
-  border-color: rgba(37, 99, 235, 0.16) !important;
+  border-color: rgba(59, 130, 246, 0.16) !important;
   color: #0f172a !important;
 }
 
