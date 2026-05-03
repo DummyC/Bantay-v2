@@ -1049,7 +1049,7 @@ export default function Admin() {
           <p className="text-2xl font-semibold text-white">{value}</p>
         </div>
         <div
-          className={`rounded-full p-2 ${
+          className={`admin-stat-icon rounded-full p-2 ${
             tone === 'cyan'
               ? 'bg-cyan-500/15 text-cyan-200'
               : tone === 'amber'
