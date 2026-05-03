@@ -1228,13 +1228,25 @@ export default function Admin() {
       return (
         <div className="space-y-2">
           {filteredUsers.map((u) => (
-            <Card key={u.id} className="border-white/5 bg-slate-900/70">
+            <Card
+              key={u.id}
+              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              onClick={() => setDialog({ kind: 'user', mode: 'detail', user: u })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setDialog({ kind: 'user', mode: 'detail', user: u })
+                }
+              }}
+            >
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div>
                   <p className="text-sm font-semibold text-white">{u.name || 'Unnamed user'}</p>
                   <p className="text-xs text-slate-400">{u.email}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <Badge className="bg-cyan-500/20 text-cyan-100">{formatRole(u.role)}</Badge>
                   {u.is_active === false && <Badge className="bg-amber-500/20 text-amber-100">Inactive</Badge>}
                   {u.created_at && <span className="text-xs text-slate-500">Joined {formatGMT8(u.created_at)}</span>}
@@ -1265,14 +1277,26 @@ export default function Admin() {
       return (
         <div className="space-y-2">
           {filteredDevices.map((d) => (
-            <Card key={d.id} className="border-white/5 bg-slate-900/70">
+            <Card
+              key={d.id}
+              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              onClick={() => setDialog({ kind: 'device', mode: 'detail', device: d })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setDialog({ kind: 'device', mode: 'detail', device: d })
+                }
+              }}
+            >
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div>
                   <p className="text-sm font-semibold text-white">{d.name || `Device ${d.id}`}</p>
                   <p className="text-xs text-slate-400">UID: {d.unique_id || '—'}</p>
                   <p className="text-xs text-slate-500">Geofence: {geofenceNameById(d.geofence_id)}</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400" onClick={(e) => e.stopPropagation()}>
                   <Badge className="bg-emerald-500/15 text-emerald-200">Owner: {ownerDisplay(d.user_id)}</Badge>
                   <div className="flex items-center gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: 'device', mode: 'detail', device: d })}>
@@ -1298,13 +1322,25 @@ export default function Admin() {
       return (
         <div className="space-y-2">
           {filteredGeofences.map((g) => (
-            <Card key={g.id} className="border-white/5 bg-slate-900/70">
+            <Card
+              key={g.id}
+              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              onClick={() => setDialog({ kind: 'geofence', mode: 'detail', geofence: g })}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setDialog({ kind: 'geofence', mode: 'detail', geofence: g })
+                }
+              }}
+            >
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div>
                   <p className="text-sm font-semibold text-white">{g.name}</p>
                   <p className="text-xs text-slate-400">{g.description || 'No description'}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <Badge className="bg-slate-800 text-slate-200">ID {g.id}</Badge>
                   <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: 'geofence', mode: 'detail', geofence: g })}>
                     <Eye className="h-4 w-4" />
