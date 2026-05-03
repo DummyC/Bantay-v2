@@ -87,3 +87,109 @@
 .admin-theme.admin-theme-dark .bg-amber-600 {
   filter: saturate(1.08) brightness(1.08);
 }
+
+.admin-theme.admin-theme-light {
+  background: radial-gradient(circle at 12% 6%, #eff6ff 0%, #dbeafe 46%, #bfdbfe 100%);
+}
+
+.admin-theme.admin-theme-light .bg-slate-950 {
+  background-color: #eff6ff !important;
+}
+
+.admin-theme.admin-theme-light .bg-slate-900\/80,
+.admin-theme.admin-theme-light .bg-slate-900\/70,
+.admin-theme.admin-theme-light .bg-slate-900\/60,
+.admin-theme.admin-theme-light .bg-slate-900\/50 {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(10px);
+}
+
+.admin-theme.admin-theme-light .bg-slate-900,
+.admin-theme.admin-theme-light .bg-slate-800,
+.admin-theme.admin-theme-light .bg-slate-700 {
+  background-color: #f8fbff !important;
+}
+
+.admin-theme.admin-theme-light .border-white\/5,
+.admin-theme.admin-theme-light .border-white\/10,
+.admin-theme.admin-theme-light .border-white\/15,
+.admin-theme.admin-theme-light .border-white\/20 {
+  border-color: rgba(37, 99, 235, 0.16) !important;
+}
+
+.admin-theme.admin-theme-light .text-white {
+  color: #0f172a !important;
+}
+
+.admin-theme.admin-theme-light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+.admin-theme.admin-theme-light .text-slate-200 {
+  color: #1e3a8a !important;
+}
+
+.admin-theme.admin-theme-light .text-slate-300 {
+  color: #3b82f6 !important;
+}
+
+.admin-theme.admin-theme-light .text-slate-400 {
+  color: #64748b !important;
+}
+
+.admin-theme.admin-theme-light .text-slate-500 {
+  color: #7c93b8 !important;
+}
+
+.admin-theme.admin-theme-light .text-cyan-100,
+.admin-theme.admin-theme-light .text-cyan-200,
+.admin-theme.admin-theme-light .text-emerald-200,
+.admin-theme.admin-theme-light .text-amber-200,
+.admin-theme.admin-theme-light .text-red-200 {
+  color: #1d4ed8 !important;
+}
+
+.admin-theme.admin-theme-light .bg-cyan-500\/20,
+.admin-theme.admin-theme-light .bg-cyan-500\/15,
+.admin-theme.admin-theme-light .bg-emerald-500\/15,
+.admin-theme.admin-theme-light .bg-amber-500\/15,
+.admin-theme.admin-theme-light .bg-red-500\/15,
+.admin-theme.admin-theme-light .bg-slate-800,
+.admin-theme.admin-theme-light .bg-slate-700 {
+  background-color: rgba(219, 234, 254, 0.9) !important;
+}
+
+.admin-theme.admin-theme-light .bg-cyan-500\/10 {
+  background-color: rgba(191, 219, 254, 0.9) !important;
+}
+
+.admin-theme.admin-theme-light .bg-white\/5,
+.admin-theme.admin-theme-light .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+}
+
+.admin-theme.admin-theme-light .hover\:bg-slate-900:hover,
+.admin-theme.admin-theme-light .hover\:bg-slate-800:hover,
+.admin-theme.admin-theme-light .hover\:bg-slate-700:hover {
+  background-color: #dbeafe !important;
+}
+
+.admin-theme.admin-theme-light .ring-cyan-400\/50 {
+  --tw-ring-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.admin-theme.admin-theme-light .bg-cyan-500\/20,
+.admin-theme.admin-theme-light .bg-cyan-500\/15,
+.admin-theme.admin-theme-light .bg-cyan-500\/10 {
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+}
+
+.admin-theme.admin-theme-light .bg-cyan-600,
+.admin-theme.admin-theme-light .bg-emerald-600,
+.admin-theme.admin-theme-light .bg-amber-600 {
+  filter: saturate(1.18) brightness(1.02);
+}
+
+.admin-theme.admin-theme-light .placeholder\:text-slate-500::placeholder {
+  color: #7c93b8 !important;
+}
