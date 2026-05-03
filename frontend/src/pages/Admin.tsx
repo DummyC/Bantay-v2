@@ -1230,7 +1230,7 @@ export default function Admin() {
           {filteredUsers.map((u) => (
             <Card
               key={u.id}
-              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              className="admin-list-card border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
               onClick={() => setDialog({ kind: 'user', mode: 'detail', user: u })}
               role="button"
               tabIndex={0}
@@ -1279,7 +1279,7 @@ export default function Admin() {
           {filteredDevices.map((d) => (
             <Card
               key={d.id}
-              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              className="admin-list-card border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
               onClick={() => setDialog({ kind: 'device', mode: 'detail', device: d })}
               role="button"
               tabIndex={0}
@@ -1324,7 +1324,7 @@ export default function Admin() {
           {filteredGeofences.map((g) => (
             <Card
               key={g.id}
-              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              className="admin-list-card border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
               onClick={() => setDialog({ kind: 'geofence', mode: 'detail', geofence: g })}
               role="button"
               tabIndex={0}
@@ -1389,7 +1389,7 @@ export default function Admin() {
           {filteredReports.map((r) => (
             <Card
               key={r.id}
-              className="border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
+              className="admin-list-card border-white/5 bg-slate-900/70 cursor-pointer transition hover:border-cyan-500/40 hover:bg-slate-900"
               onClick={() => setDialog({ kind: 'report-detail', report: r })}
               role="button"
               tabIndex={0}

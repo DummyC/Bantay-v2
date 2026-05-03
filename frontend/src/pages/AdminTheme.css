@@ -218,6 +218,42 @@
   box-shadow: 0 16px 34px rgba(37, 99, 235, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
+.admin-theme.admin-theme-light .admin-list-card {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.admin-theme.admin-theme-light .admin-list-card:hover {
+  transform: translateY(-2px) scale(1.005);
+  border-color: rgba(37, 99, 235, 0.52) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(219, 234, 254, 0.98) 100%) !important;
+  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.16), 0 0 0 1px rgba(96, 165, 250, 0.18) inset;
+}
+
+.admin-theme.admin-theme-light .admin-list-card:hover .text-white,
+.admin-theme.admin-theme-light .admin-list-card:hover .text-slate-100,
+.admin-theme.admin-theme-light .admin-list-card:hover .text-slate-200 {
+  color: #081a3b !important;
+}
+
+.admin-theme.admin-theme-light .admin-list-card:hover .text-slate-400,
+.admin-theme.admin-theme-light .admin-list-card:hover .text-slate-500 {
+  color: #1d4ed8 !important;
+}
+
+.admin-theme.admin-theme-light .admin-list-card:hover .border-white\/5,
+.admin-theme.admin-theme-light .admin-list-card:hover .border-white\/10 {
+  border-color: rgba(37, 99, 235, 0.24) !important;
+}
+
+.admin-theme.admin-theme-light .admin-list-card:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+}
+
 .admin-theme.admin-theme-light .admin-dashboard-section-title {
   color: #0f172a !important;
 }
