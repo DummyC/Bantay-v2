@@ -1202,7 +1202,7 @@ export default function Admin() {
 
           <Card className="border-white/5 bg-slate-900/70">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Recent alerts</CardTitle>
+              <CardTitle className="admin-dashboard-section-title text-base">Recent alerts</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-slate-200">
               {alerts
@@ -2073,8 +2073,8 @@ export default function Admin() {
               <button
                 key={item.key}
                 onClick={() => setActiveTab(item.key)}
-                className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition ${
-                  activeTab === item.key ? 'bg-slate-800 text-white ring-1 ring-cyan-400/50' : 'text-slate-300 hover:bg-slate-900'
+                className={`admin-sidebar-nav-item flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition ${
+                  activeTab === item.key ? 'admin-sidebar-nav-item-active bg-slate-800 text-white ring-1 ring-cyan-400/50' : 'text-slate-300 hover:bg-slate-900'
                 }`}
               >
                 {item.icon}
